@@ -64,4 +64,10 @@ __debug_bin
 
 # Go workspace
 go.work
-go.work.sumSRD_Container_Runtime_Security_Falco_Clone.md
+go.work.sum
+
+# Internal session docs (not for public repo)
+SRD_Container_Runtime_Security_Falco_Clone.md
+HANDOVER.md
+HANDOVER_PROMPT.md
+PUSH_PROMPT.md
