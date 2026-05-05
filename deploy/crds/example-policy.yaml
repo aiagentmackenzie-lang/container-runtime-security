@@ -1,0 +1,98 @@
+# Example ScarletRuntimePolicy — SecurityScarlet Runtime
+#
+# This policy demonstrates all available configuration options.
+# Apply with: kubectl apply -f deploy/crds/example-policy.yaml
+#
+# For production use, start with mode: audit, then switch to mode: enforce
+# after verifying alerts are expected.
+
+apiVersion: securityscarlet.ai/v1alpha1
+kind: ScarletRuntimePolicy
+metadata:
+  name: default-policy
+  namespace: security-scarlet
+  labels:
+    app.kubernetes.io/name: securityscarlet-runtime
+    policyType: default
+spec:
+  # Operating mode: audit (alert only), enforce (alert + kill + network block), simulate (log only)
+  mode: audit
+
+  # Rule selector: which rules this policy applies to
+  ruleSelector:
+    all: true  # Apply to all R001-R030 rules
+
+  # Exceptions: suppress enforcement for trusted workloads
+  exceptions:
+    # Allow shell processes in debug images
+    - name: trusted-debug-shells
+      fields:
+        - container.image.repository
+        - proc.name
+      comps:
+        - '='
+        - '='
+      values:
+        - [admin-toolkit/admin-cli, /usr/bin/bash]
+        - [debug-pod/tools, /bin/sh]
+        - [debug-pod/tools, /bin/bash]
+
+    # Allow known maintenance scripts to access sensitive files
+    - name: maintenance-file-access
+      fields:
+        - container.image.repository
+        - namespace
+      comps:
+        - '='
+        - '='
+      values:
+        - [security-tools/scanner, security-tools]
+      mode: all
+
+  # Enforcement configuration
+  enforcementConfig:
+    killMode: immediate           # immediate (SIGKILL) or graceful (SIGTERM → SIGKILL)
+    gracePeriodSeconds: 5          # Seconds to wait after SIGTERM (graceful mode only)
+    maxKillsPerPod: 10             # Rate limit: max kills per pod per window
+    windowSeconds: 60              # Rate limit window in seconds
+
+  # Protected namespaces (enforcement is never applied here)
+  protectedNamespaces:
+    - kube-system
+    - kube-public
+
+  # Network policy: eBPF TC-based blocking
+  networkPolicy:
+    enabled: true
+    defaultTTL: "5m"
+
+    # Pre-configured network blocks (applied on policy apply)
+    blockList:
+      # Block cloud metadata service (AWS/GCP/Azure) — Capital One attack pattern
+      - destIP: "169.254.169.254"
+        destPort: 0
+        protocol: any
+        reason: "Cloud metadata SSRF protection — blocks credential theft"
+        ttl: "30m"
+
+      # Block Azure metadata service
+      - destIP: "168.63.129.16"
+        destPort: 80
+        protocol: tcp
+        reason: "Azure metadata service protection"
+
+      # Block common C2 ports on any IP
+      - destIP: "0.0.0.0"
+        destPort: 4444
+        protocol: tcp
+        reason: "C2 port (Metasploit default)"
+        ttl: "5m"
+
+      - destIP: "0.0.0.0"
+        destPort: 1337
+        protocol: tcp
+        reason: "C2 port (common C2)"
+
+status:
+  phase: pending
+  message: "Policy loaded, awaiting controller reconciliation"

@@ -1,0 +1,24 @@
+apiVersion: v2
+name: scarlet-runtime
+description: >-
+  SecurityScarlet Runtime — eBPF-based container runtime security monitoring
+  and enforcement for Kubernetes workloads.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - security
+  - runtime
+  - ebpf
+  - container
+  - monitoring
+  - falco
+  - tetragon
+home: https://github.com/securityscarlet/runtime
+sources:
+  - https://github.com/securityscarlet/runtime
+maintainers:
+  - name: securityscarlet
+    email: engineering@securityscarlet.ai
+annotations:
+  category: Security

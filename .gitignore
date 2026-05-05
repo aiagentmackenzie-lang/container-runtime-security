@@ -1,0 +1,67 @@
+# Build output
+build/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Binary
+scarletctl
+cmd/scarletctl/scarletctl
+
+# Test artifacts
+coverage.out
+coverage.html
+*.test
+*.prof
+*.cpuprofile
+*.memprofile
+*.trace
+
+# eBPF generated objects
+*.o
+pkg/ebpf/probes/*.o
+
+# Dependency directories
+vendor/
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux
+*~
+
+# Environment / secrets
+.env
+.env.*
+*.pem
+*.key
+*.crt
+!configs/tls/placeholder*
+
+# Logs
+*.log
+/var/log/
+
+# Delve debugger
+__debug_bin
+
+# Go workspace
+go.work
+go.work.sum

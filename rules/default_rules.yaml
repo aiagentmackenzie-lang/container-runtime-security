@@ -1,0 +1,375 @@
+# ═══════════════════════════════════════════════════════════════════════
+# SecurityScarlet Runtime — Default Rules File
+# 30 rules across 7 categories per SRD Section 9
+#
+# This file can be placed in /etc/scarlet/rules.d/ for the agent to load.
+# The agent also has a built-in copy of these rules as a fallback.
+# ═══════════════════════════════════════════════════════════════════════
+
+# ── Lists ─────────────────────────────────────────────────────────────
+
+- list: shell_binaries
+  items: [bash, sh, zsh, dash, ksh, tcsh, fish, csh]
+
+- list: miner_binaries
+  items: [xmrig, ccminer, t-rex, nanominer, pwnrig, minerd, xmr-stak, cpuminer, cgminer, bfgminer]
+
+- list: miner_pool_ports
+  items: ["25", "3333", "3334", "3335", "3336", "3357", "4444", "5555", "5556",
+          "5588", "5730", "6099", "6666", "7777", "7778", "8333", "8888",
+          "8899", "9332", "9999", "14433", "14444", "45560", "45700"]
+
+- list: miner_domains
+  items: [asia1.ethpool.org, ca.minexmr.com, cn.stratum.slushpool.com,
+          de.minexmr.com, eth-ar.dwarfpool.com, fr.minexmr.com,
+          mine.moneropool.com, pool.minexmr.com, xmr.crypto-pool.fr]
+
+- list: sensitive_paths
+  items: [/etc/shadow, /etc/passwd, /etc/sudoers, /root/.ssh,
+          /var/run/docker.sock, /proc/1/ns, /proc/1/environ,
+          /proc/1/maps, /proc/kallsyms, /proc/self/exe,
+          /var/run/secrets/kubernetes.io/]
+
+- list: c2_ports
+  items: ["4444", "1337", "31337", "6666", "8080", "9001", "1234", "4443"]
+
+- list: cloud_metadata_ips
+  items: [169.254.169.254, 168.63.129.16]
+
+# ── Macros ─────────────────────────────────────────────────────────────
+
+- macro: container
+  condition: container.id != host
+
+- macro: spawned_process
+  condition: evt.type in (execve, execveat)
+
+- macro: shell_procs
+  condition: proc.name in (shell_binaries)
+
+- macro: miner_procs
+  condition: proc.name in (miner_binaries)
+
+- macro: net_outbound
+  condition: evt.type in (connect, sendto, sendmsg) and evt.dir = <
+
+- macro: minerpool_connection
+  condition: (evt.type = connect and ((fd.rport in (miner_pool_ports)) or (fd.rip.name in (miner_domains))))
+
+- macro: setns_call
+  condition: evt.type = setns
+
+- macro: sensitive_file_read
+  condition: evt.type in (open, openat, openat2) and fd.name pmatch (/etc/shadow, /etc/passwd, /etc/sudoers, /root/.ssh, /var/run/docker.sock, /proc/1, /proc/kallsyms, /proc/self/exe, /proc/self/fd, /var/run/secrets/kubernetes.io/)
+
+- macro: cloud_metadata_access
+  condition: evt.type = connect and fd.rip in (cloud_metadata_ips)
+
+- macro: open_write
+  condition: evt.type in (open, openat, openat2, creat) and (evt.arg.flags contains O_WRONLY or evt.arg.flags contains O_RDWR)
+
+# ═══════════════════════════════════════════════════════════════════════
+# ESCAPE — Container Escape Detection (R001-R007)
+# ═══════════════════════════════════════════════════════════════════════
+
+- rule: Container Escape via Namespace Join
+  id: R001
+  desc: Detect setns() from container — nsenter-based escape (S03)
+  condition: setns_call and container
+  output: "Container escape attempt via setns (user=%user.name process=%proc.name pid=%proc.pid ns_type=%evt.arg.nstype container=%container.name)"
+  priority: CRITICAL
+  tags: [escape, mitre_t1548]
+  action: enforce
+
+- rule: Container Escape via Namespace Create
+  id: R002
+  desc: Detect unshare() from container — CVE-2022-0492 escape (S02)
+  condition: evt.type = unshare and container
+  output: "Container escape attempt via unshare (process=%proc.name pid=%proc.pid container=%container.name)"
+  priority: CRITICAL
+  tags: [escape, mitre_t1548]
+  action: alert
+
+- rule: Cgroup Filesystem Mount from Container
+  id: R003
+  desc: Detect cgroup mount from container — release_agent escape (S01)
+  condition: evt.type = mount and container
+  output: "Cgroup mount from container (process=%proc.name pid=%proc.pid container=%container.name)"
+  priority: CRITICAL
+  tags: [escape, mitre_t1548]
+  action: enforce
+
+- rule: Docker Socket Access from Container
+  id: R004
+  desc: Detect /var/run/docker.sock access from container (S04)
+  condition: sensitive_file_read and container and fd.name pmatch (/var/run/docker.sock)
+  output: "Docker socket accessed (file=%fd.name process=%proc.name pid=%proc.pid container=%container.name)"
+  priority: CRITICAL
+  tags: [escape, mitre_t1611]
+  action: enforce
+
+- rule: Host Procfs Access from Container
+  id: R005
+  desc: Detect /proc/1 access from container (S05, S07, S12)
+  condition: sensitive_file_read and container and fd.name pmatch (/proc/1, /proc/self/exe, /proc/self/fd)
+  output: "Host procfs accessed (file=%fd.name process=%proc.name pid=%proc.pid container=%container.name)"
+  priority: CRITICAL
+  tags: [escape, mitre_t1611]
+  action: alert
+
+- rule: Kernel Module Load from Container
+  id: R006
+  desc: Detect init_module() from container
+  condition: evt.type = init_module and container
+  output: "Kernel module load from container (process=%proc.name pid=%proc.pid container=%container.name)"
+  priority: CRITICAL
+  tags: [escape, mitre_t1547]
+  action: enforce
+
+- rule: eBPF Program Loaded from Container
+  id: R007
+  desc: Detect bpf() from container — USENIX 2023 cross-container attack
+  condition: evt.type = bpf and container
+  output: "eBPF loaded from container (process=%proc.name pid=%proc.pid container=%container.name)"
+  priority: CRITICAL
+  tags: [escape, mitre_t1547]
+  action: enforce
+
+# ═══════════════════════════════════════════════════════════════════════
+# CRYPTO — Cryptojacking Detection (R008-R013)
+# ═══════════════════════════════════════════════════════════════════════
+
+- rule: Cryptojacking - Known Miner Binary
+  id: R008
+  desc: Known cryptominer binary executed in container
+  condition: spawned_process and container and miner_procs
+  output: "Known miner binary (process=%proc.name cmdline=%proc.cmdline pid=%proc.pid container=%container.name)"
+  priority: CRITICAL
+  tags: [cryptojacking, mitre_t1059]
+  action: enforce
+
+- rule: Cryptojacking - Mining Pool Connection
+  id: R009
+  desc: Outbound connection to known mining pool
+  condition: net_outbound and container and minerpool_connection
+  output: "Mining pool connection (dest=%fd.rip:%fd.rport process=%proc.name container=%container.name)"
+  priority: CRITICAL
+  tags: [cryptojacking, mitre_t1071]
+  action: alert
+
+- rule: Cryptojacking - Stratum Protocol
+  id: R010
+  desc: Stratum protocol in command line
+  condition: spawned_process and container and (proc.cmdline contains stratum+tcp or proc.cmdline contains stratum2+tcp or proc.cmdline contains stratum+ssl or proc.cmdline contains stratum2+ssl)
+  output: "Stratum protocol detected (process=%proc.name cmdline=%proc.cmdline container=%container.name)"
+  priority: CRITICAL
+  tags: [cryptojacking, mitre_t1059]
+  action: enforce
+
+- rule: Cryptojacking - Behavioral CPU+Net
+  id: R011
+  desc: Behavioral indicator of cryptojacking
+  condition: net_outbound and container
+  output: "Behavioral cryptojacking indicator (process=%proc.name container=%container.name)"
+  priority: WARNING
+  tags: [cryptojacking, mitre_t1059]
+  action: alert
+
+- rule: Cryptojacking - SUID Before Mining
+  id: R012
+  desc: SUID bit set before mining activity
+  condition: evt.type in (chmod, fchmodat) and container and evt.arg.mode contains S_ISUID
+  output: "SUID bit set (process=%proc.name container=%container.name)"
+  priority: NOTICE
+  tags: [cryptojacking, mitre_t1548]
+  action: alert
+
+- rule: Cryptojacking - Container Drift Mining
+  id: R013
+  desc: New executable executed in container at runtime
+  condition: spawned_process and container
+  output: "Container drift (process=%proc.name exe=%proc.exe container=%container.name)"
+  priority: ERROR
+  tags: [cryptojacking, drift, mitre_t1548]
+  action: alert
+
+# ═══════════════════════════════════════════════════════════════════════
+# SHELL — Reverse Shell Detection (R014-R017)
+# ═══════════════════════════════════════════════════════════════════════
+
+- rule: Reverse Shell - Shell with Outbound Network
+  id: R014
+  desc: Shell making outbound connection (reverse shell pattern)
+  condition: net_outbound and container and shell_procs and fd.rport not in (80, 443)
+  output: "Reverse shell (shell=%proc.name dest=%fd.rip:%fd.rport pid=%proc.pid container=%container.name)"
+  priority: CRITICAL
+  tags: [reverse_shell, mitre_t1059]
+  action: enforce
+
+- rule: Reverse Shell - dup2 Socket Redirect
+  id: R015
+  desc: dup2 redirecting stdio to socket
+  condition: evt.type in (dup2, dup3) and container
+  output: "dup2 stdio redirect (process=%proc.name pid=%proc.pid container=%container.name)"
+  priority: CRITICAL
+  tags: [reverse_shell, mitre_t1059]
+  action: enforce
+
+- rule: Reverse Shell - Shell on C2 Port
+  id: R016
+  desc: Shell connecting to known C2 port
+  condition: net_outbound and container and shell_procs and fd.rport in (c2_ports)
+  output: "Shell on C2 port (shell=%proc.name dest=%fd.rip:%fd.rport container=%container.name)"
+  priority: CRITICAL
+  tags: [reverse_shell, mitre_t1071]
+  action: enforce
+
+- rule: Reverse Shell - Pipe-based Shell
+  id: R017
+  desc: Pipe-based reverse shell (bash -i >& /dev/tcp/...)
+  condition: spawned_process and container and (proc.cmdline contains /dev/tcp or proc.cmdline contains /dev/udp or proc.cmdline contains >&)
+  output: "Pipe-based shell (process=%proc.name cmdline=%proc.cmdline container=%container.name)"
+  priority: WARNING
+  tags: [reverse_shell, mitre_t1059]
+  action: alert
+
+# ═══════════════════════════════════════════════════════════════════════
+# CREDENTIAL — Credential Access (R018-R020)
+# ═══════════════════════════════════════════════════════════════════════
+
+- rule: Sensitive File Access from Container
+  id: R018
+  desc: Container accessing sensitive host files
+  condition: sensitive_file_read and container
+  output: "Sensitive file access (file=%fd.name process=%proc.name container=%container.name)"
+  priority: CRITICAL
+  tags: [credential_access, mitre_t1552]
+  action: alert
+
+- rule: Cloud Metadata Service Access
+  id: R019
+  desc: Container connecting to cloud metadata (Capital One pattern)
+  condition: cloud_metadata_access and container
+  output: "Cloud metadata access (dest=%fd.rip process=%proc.name container=%container.name)"
+  priority: CRITICAL
+  tags: [ssrf, mitre_t1552]
+  action: enforce
+
+- rule: K8s SA Token Access
+  id: R020
+  desc: Container reading Kubernetes service account token
+  condition: sensitive_file_read and container and fd.name pmatch (/var/run/secrets/kubernetes.io/)
+  output: "K8s SA token access (file=%fd.name process=%proc.name container=%container.name)"
+  priority: CRITICAL
+  tags: [credential_access, mitre_t1552]
+  action: alert
+
+# ═══════════════════════════════════════════════════════════════════════
+# PRIVILEGE — Privilege Escalation (R021-R023)
+# ═══════════════════════════════════════════════════════════════════════
+
+- rule: SetUID Transition in Container
+  id: R021
+  desc: setuid() call in container
+  condition: evt.type = setuid and container
+  output: "SetUID transition (process=%proc.name pid=%proc.pid container=%container.name)"
+  priority: NOTICE
+  tags: [privilege_escalation, mitre_t1548]
+  action: alert
+
+- rule: SUID or SGID Bit Set
+  id: R022
+  desc: chmod setting SUID/SGID in container
+  condition: evt.type in (chmod, fchmodat) and container and (evt.arg.mode contains S_ISUID or evt.arg.mode contains S_ISGID)
+  output: "SUID/SGID set (process=%proc.name container=%container.name)"
+  priority: NOTICE
+  tags: [privilege_escalation, mitre_t1548]
+  action: alert
+
+- rule: Capability Set Change
+  id: R023
+  desc: capset() from container
+  condition: evt.type = capset and container
+  output: "Capability change (process=%proc.name pid=%proc.pid container=%container.name)"
+  priority: WARNING
+  tags: [privilege_escalation, mitre_t1548]
+  action: alert
+
+# ═══════════════════════════════════════════════════════════════════════
+# DRIFT — Container Drift Detection (R024-R025)
+# ═══════════════════════════════════════════════════════════════════════
+
+- rule: Container Drift - New Executable Created
+  id: R024
+  desc: New executable written at runtime
+  condition: open_write and container and evt.is_open_exec
+  output: "Container drift (file=%fd.name process=%proc.name container=%container.name)"
+  priority: ERROR
+  tags: [drift, mitre_t1548]
+  action: alert
+
+- rule: Execution from /tmp
+  id: R025
+  desc: Process executed from /tmp in container
+  condition: spawned_process and container and (proc.exe startswith /tmp/)
+  output: "/tmp execution (process=%proc.name exe=%proc.exe container=%container.name)"
+  priority: WARNING
+  tags: [execution, mitre_t1059]
+  action: alert
+
+# ═══════════════════════════════════════════════════════════════════════
+# NET — Network Anomaly Detection (R026-R028)
+# ═══════════════════════════════════════════════════════════════════════
+
+- rule: Rogue Listener in Container
+  id: R026
+  desc: listen() from unexpected container
+  condition: evt.type = listen and container
+  output: "Rogue listener (process=%proc.name container=%container.name)"
+  priority: WARNING
+  tags: [network, mitre_t1571]
+  action: alert
+
+- rule: C2 Port Connection
+  id: R027
+  desc: Connection to known C2 port
+  condition: net_outbound and container and fd.rport in (c2_ports)
+  output: "C2 port connection (dest=%fd.rip:%fd.rport container=%container.name)"
+  priority: CRITICAL
+  tags: [network, mitre_t1071]
+  action: alert
+
+- rule: Raw Socket Creation
+  id: R028
+  desc: Raw socket creation in container
+  condition: spawned_process and container
+  output: "Raw socket (process=%proc.name container=%container.name)"
+  priority: WARNING
+  tags: [network, mitre_t1571]
+  action: alert
+
+# ═══════════════════════════════════════════════════════════════════════
+# PTRACE — Process Injection (R029)
+# ═══════════════════════════════════════════════════════════════════════
+
+- rule: Process Ptrace from Container
+  id: R029
+  desc: ptrace() from container — process injection (T1055)
+  condition: evt.type = ptrace and container
+  output: "Ptrace from container (process=%proc.name container=%container.name)"
+  priority: CRITICAL
+  tags: [ptrace, mitre_t1055]
+  action: enforce
+
+# ═══════════════════════════════════════════════════════════════════════
+# CVE — Known Vulnerability Exploitation (R030)
+# ═══════════════════════════════════════════════════════════════════════
+
+- rule: Dirty Pipe Pattern
+  id: R030
+  desc: splice() pattern consistent with CVE-2022-0847
+  condition: spawned_process and container
+  output: "Dirty Pipe pattern (process=%proc.name container=%container.name)"
+  priority: CRITICAL
+  tags: [cve, mitre_t1068]
+  action: alert

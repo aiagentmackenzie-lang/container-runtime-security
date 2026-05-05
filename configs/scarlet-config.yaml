@@ -1,0 +1,51 @@
+# SecurityScarlet Runtime — Default Configuration
+# See SRD Appendix B for full reference
+
+agent:
+  mode: audit                      # audit | enforce | simulate
+  log_level: info                   # debug | info | warn | error
+  ring_buffer_size_mb: 4            # Per-node ring buffer size
+  k8s_node_name: ${NODE_NAME}      # From downward API
+  bpf_object_dir: /opt/scarlet/bpf  # Compiled eBPF objects
+  procfs_path: /host/proc          # Host /proc (mounted from node)
+  sysfs_path: /sys/kernel/debug
+
+enrichment:
+  cri_endpoint: /run/containerd/containerd.sock
+  k8s_node_name: ${NODE_NAME}
+  pid_cache_size: 10000
+  pid_cache_ttl: 300                # seconds
+  procfs_path: /host/proc
+
+rules:
+  paths:
+    - /etc/scarlet/rules.d/
+  reload_on_change: true
+
+enforcement:
+  protected_namespaces:
+    - kube-system
+    - kube-public
+  max_kills_per_pod: 10
+  window_seconds: 60
+  simulate_minimum_hours: 48
+
+output:
+  alert_file: /var/log/scarlet/alerts.jsonl
+  webhook_url: ""
+  webhook_headers: {}
+
+ai:
+  enabled: false
+  endpoint: scarlet-ai:9443
+  anomaly_threshold: 0.8
+  learning_mode: false
+
+metrics:
+  enabled: true
+  port: 9090
+
+webhook:
+  port: 8443
+  tls_cert: /etc/scarlet/tls/tls.crt
+  tls_key: /etc/scarlet/tls/tls.key

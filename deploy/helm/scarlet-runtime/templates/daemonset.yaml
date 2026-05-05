@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "scarlet-runtime.fullname" . }}-agent
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "scarlet-runtime.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+spec:
+  selector:
+    matchLabels:
+      {{- include "scarlet-runtime.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: agent
+  template:
+    metadata:
+      labels:
+        {{- include "scarlet-runtime.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: agent
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .Values.metrics.port }}"
+    spec:
+      serviceAccountName: {{ include "scarlet-runtime.serviceAccountName" . }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      hostNetwork: true
+      hostPID: true
+      hostIPC: true
+      volumes:
+        - name: procfs
+          hostPath:
+            path: /proc
+        - name: sys-kernel-debug
+          hostPath:
+            path: /sys/kernel/debug
+        - name: sys-fs-bpf
+          hostPath:
+            path: /sys/fs/bpf
+        - name: etc-containerd
+          hostPath:
+            path: /etc/containerd
+        - name: run-containerd
+          hostPath:
+            path: /run/containerd
+        - name: rules
+          configMap:
+            name: {{ include "scarlet-runtime.fullname" . }}-rules
+        - name: alert-log
+          hostPath:
+            path: /var/log/scarlet
+            type: DirectoryOrCreate
+      containers:
+        - name: scarlet-agent
+          image: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag }}"
+          imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: SCARLET_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: SCARLET_MODE
+              value: {{ .Values.agent.mode | quote }}
+            - name: SCARLET_LOG_LEVEL
+              value: {{ .Values.agent.logLevel | quote }}
+          volumeMounts:
+            - name: procfs
+              mountPath: /host/proc
+              readOnly: true
+            - name: sys-kernel-debug
+              mountPath: /sys/kernel/debug
+            - name: sys-fs-bpf
+              mountPath: /sys/fs/bpf
+            - name: etc-containerd
+              mountPath: /etc/containerd
+              readOnly: true
+            - name: run-containerd
+              mountPath: /run/containerd
+            - name: rules
+              mountPath: /etc/scarlet/rules.d
+              readOnly: true
+            - name: alert-log
+              mountPath: /var/log/scarlet
+          ports:
+            - containerPort: {{ .Values.metrics.port }}
+              name: metrics
+              hostPort: {{ .Values.metrics.port }}
+            - containerPort: {{ .Values.webhook.port }}
+              name: webhooks
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10

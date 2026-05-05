@@ -1,0 +1,14 @@
+# Docker ignore — exclude unnecessary files from the build context
+.git
+.github
+build/
+*.o
+*.patch
+.DS_Store
+*.swp
+*.swo
+coverage.out
+test/
+vendor/
+README.md
+SRD_Container_Runtime_Security_Falco_Clone.md

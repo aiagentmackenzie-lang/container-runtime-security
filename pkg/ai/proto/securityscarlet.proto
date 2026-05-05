@@ -1,0 +1,248 @@
+// SecurityScarletAI gRPC Protocol Definition
+// Per SRD Section 11.5 — SecurityScarletAI Integration
+//
+// This proto defines the gRPC service for AI-powered runtime security analysis.
+// The SecurityScarlet Runtime agent connects to the SecurityScarletAI inference
+// service for anomaly detection, behavioral profiling, alert triage, and
+// rule suggestions.
+//
+// When the AI service is unavailable, the agent degrades gracefully:
+// all analysis methods return neutral/default results.
+
+syntax = "proto3";
+
+package securityscarlet.ai.v1;
+
+option go_package = "github.com/securityscarlet/runtime/pkg/ai/proto";
+
+// ── SecurityScarletAI Service ──────────────────────────────────────────
+
+// SecurityScarletAI provides AI-powered analysis for runtime security events.
+service SecurityScarletAI {
+  // AnalyzeEvents submits an event stream for real-time AI analysis.
+  // Returns a stream of analysis results including anomaly scores,
+  // threat classification, and enforcement recommendations.
+  rpc AnalyzeEvents(stream SecurityEvent) returns (stream AnalysisResult);
+
+  // GetProfile requests the behavioral profile for a container image.
+  // Used to establish baselines for anomaly comparison.
+  rpc GetProfile(ProfileRequest) returns (BehavioralProfile);
+
+  // TriageAlert submits an alert for AI-based false-positive assessment.
+  // Returns a triage result with false-positive score and recommended action.
+  rpc TriageAlert(Alert) returns (TriageResult);
+
+  // SuggestRule requests an AI-generated rule suggestion based on
+  // incident context. Returns a draft YAML rule for human review.
+  rpc SuggestRule(IncidentContext) returns (RuleSuggestion);
+}
+
+// ── Event Messages ─────────────────────────────────────────────────────
+
+// SecurityEvent represents a single security event for AI analysis.
+message SecurityEvent {
+  // Timestamp in nanoseconds since epoch.
+  uint64 timestamp_ns = 1;
+
+  // Process ID.
+  uint32 pid = 2;
+
+  // Parent process ID.
+  uint32 ppid = 3;
+
+  // User ID.
+  uint32 uid = 4;
+
+  // Group ID.
+  uint32 gid = 5;
+
+  // Event category (1=PROCESS, 2=FILE, 3=NETWORK, 4=ESCAPE, 5=PRIVILEGE, 6=CREDENTIAL).
+  uint32 category = 6;
+
+  // Event type (see SRD Section 6.2 for full list).
+  uint32 event_type = 7;
+
+  // Syscall number.
+  uint32 syscall_nr = 8;
+
+  // Process command name.
+  string comm = 9;
+
+  // Container ID (if resolved).
+  string container_id = 10;
+
+  // Container image.
+  string container_image = 11;
+
+  // Kubernetes namespace.
+  string namespace = 12;
+
+  // Category-specific payload.
+  oneof payload {
+    ProcessPayload process = 20;
+    FilePayload file = 21;
+    NetworkPayload network = 22;
+    EscapePayload escape = 23;
+    PrivilegePayload privilege = 24;
+  }
+}
+
+// ProcessPayload holds process-specific event data.
+message ProcessPayload {
+  string filename = 1;
+  string args = 2;
+}
+
+// FilePayload holds file-specific event data.
+message FilePayload {
+  string path = 1;
+  uint32 flags = 2;
+  uint32 mode = 3;
+}
+
+// NetworkPayload holds network-specific event data.
+message NetworkPayload {
+  bytes remote_addr = 1;
+  bytes local_addr = 2;
+  uint32 remote_port = 3;
+  uint32 local_port = 4;
+  uint32 protocol = 5;
+}
+
+// EscapePayload holds container escape event data.
+message EscapePayload {
+  uint32 ns_type = 1;
+  repeated uint32 target_ns = 2;
+}
+
+// PrivilegePayload holds privilege escalation event data.
+message PrivilegePayload {
+  uint32 old_uid = 1;
+  uint32 new_uid = 2;
+  uint32 capability = 3;
+  uint32 mode_flags = 4;
+}
+
+// ── Analysis Messages ──────────────────────────────────────────────────
+
+// AnalysisResult is the result of AI event analysis.
+message AnalysisResult {
+  // Anomaly score from 0.0 (normal) to 1.0 (confirmed malicious).
+  float anomaly_score = 1;
+
+  // Threat classification (e.g., "cryptojacking", "reverse_shell", "unknown").
+  string classification = 2;
+
+  // Human-readable explanation.
+  string description = 3;
+
+  // Whether AI recommends enforcement.
+  bool enforce_recommended = 4;
+
+  // Confidence level (0.0-1.0).
+  float confidence = 5;
+
+  // AI model version that produced this result.
+  string model_version = 6;
+}
+
+// ── Profile Messages ───────────────────────────────────────────────────
+
+// ProfileRequest asks the AI service for a behavioral profile.
+message ProfileRequest {
+  string image = 1;
+  bool force_rebuild = 2;
+}
+
+// BehavioralProfile contains a per-image behavioral baseline.
+message BehavioralProfile {
+  string image = 1;
+  SyscallProfile syscall_profile = 2;
+  NetworkProfile network_profile = 3;
+  FileProfile file_profile = 4;
+  uint64 baseline_events = 5;
+  float confidence = 6;
+}
+
+// SyscallProfile describes expected syscall patterns.
+message SyscallProfile {
+  map<string, float> top_syscalls = 1;
+  int32 unique_syscall_count = 2;
+  repeated uint64 ngram_hashes = 3;
+}
+
+// NetworkProfile describes expected network behavior.
+message NetworkProfile {
+  map<uint32, float> expected_ports = 1;
+  map<string, float> expected_protocols = 2;
+  float connection_rate = 3;
+}
+
+// FileProfile describes expected file access patterns.
+message FileProfile {
+  repeated string read_paths = 1;
+  repeated string write_paths = 2;
+  repeated string drift_baseline = 3;
+}
+
+// ── Triage Messages ────────────────────────────────────────────────────
+
+// Alert represents a security alert submitted for triage.
+message Alert {
+  string rule_id = 1;
+  string priority = 2;
+  string namespace = 3;
+  string container = 4;
+  string output = 5;
+  string process_name = 6;
+  uint32 pid = 7;
+  string container_image = 8;
+}
+
+// TriageResult is the AI assessment of an alert's validity.
+message TriageResult {
+  // False-positive score (0=definitely real, 1=definitely FP).
+  float false_positive_score = 1;
+
+  // AI-recommended priority.
+  string priority = 2;
+
+  // AI's explanation for the triage decision.
+  string reasoning = 3;
+
+  // Whether AI recommends suppressing this alert.
+  bool suppress_recommended = 4;
+
+  // Triage confidence (0.0-1.0).
+  float confidence = 5;
+}
+
+// ── Rule Suggestion Messages ───────────────────────────────────────────
+
+// IncidentContext provides context for AI rule suggestion.
+message IncidentContext {
+  string rule_id = 1;
+  repeated IncidentEvent events = 2;
+  string container_image = 3;
+  string namespace = 4;
+  uint64 timestamp_ns = 5;
+}
+
+// IncidentEvent is a simplified event in the incident context.
+message IncidentEvent {
+  string event_type = 1;
+  string process_name = 2;
+  uint32 pid = 3;
+  string category = 4;
+  uint64 timestamp_ns = 5;
+  map<string, string> details = 6;
+}
+
+// RuleSuggestion is a draft YAML rule generated by the AI.
+message RuleSuggestion {
+  string rule_yaml = 1;
+  string reasoning = 2;
+  int32 based_on_incidents = 3;
+  float confidence = 4;
+  string status = 5; // "draft", "pending_approval", "approved", "rejected"
+}

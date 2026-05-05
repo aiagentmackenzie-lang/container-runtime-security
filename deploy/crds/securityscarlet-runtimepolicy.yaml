@@ -1,0 +1,285 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: scarletruntimepolicies.securityscarlet.ai
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  labels:
+    app.kubernetes.io/name: securityscarlet-runtime
+    app.kubernetes.io/part-of: securityscarlet
+    app.kubernetes.io/component: crd
+spec:
+  group: securityscarlet.ai
+  names:
+    kind: ScarletRuntimePolicy
+    listKind: ScarletRuntimePolicyList
+    singular: scarletruntimepolicy
+    plural: scarletruntimepolicies
+    shortNames:
+      - srp
+      - scarletpolicy
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          description: |
+            ScarletRuntimePolicy defines a runtime security policy for the
+            SecurityScarlet Runtime agent. It controls which rules are active,
+            enforcement mode, exceptions, and network blocking configuration.
+          type: object
+          properties:
+            apiVersion:
+              description: 'APIVersion defines the versioned schema of this representation of an object.'
+              type: string
+              enum:
+                - securityscarlet.ai/v1alpha1
+            kind:
+              description: 'Kind is a string value representing the REST resource this object represents.'
+              type: string
+              enum:
+                - ScarletRuntimePolicy
+            metadata:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 63
+                  pattern: '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$'
+                namespace:
+                  type: string
+                  default: security-scarlet
+                labels:
+                  type: object
+                  additionalProperties:
+                    type: string
+                annotations:
+                  type: object
+                  additionalProperties:
+                    type: string
+            spec:
+              description: ScarletRuntimePolicySpec defines the desired state.
+              type: object
+              properties:
+                mode:
+                  description: 'Operating mode: audit (alert only), enforce (alert + kill + network block), or simulate (log what would happen).'
+                  type: string
+                  enum:
+                    - audit
+                    - enforce
+                    - simulate
+                  default: audit
+                ruleSelector:
+                  description: Selects which rules this policy applies to.
+                  type: object
+                  properties:
+                    ids:
+                      description: Rule IDs to select (e.g., R009, R027, R019).
+                      type: array
+                      items:
+                        type: string
+                        pattern: '^R\d{3}$'
+                    categories:
+                      description: Categories to select (ESCAPE, CRYPTO, SHELL, CRED, PRIV, DRIFT, NET).
+                      type: array
+                      items:
+                        type: string
+                        enum:
+                          - ESCAPE
+                          - CRYPTO
+                          - SHELL
+                          - CRED
+                          - PRIV
+                          - DRIFT
+                          - NET
+                          - PTRACE
+                    priorities:
+                      description: Priorities to select.
+                      type: array
+                      items:
+                        type: string
+                        enum:
+                          - CRITICAL
+                          - ERROR
+                          - WARNING
+                          - NOTICE
+                          - INFORMATIONAL
+                    tags:
+                      description: Tags to select (e.g., cryptojacking, mitre_execution).
+                      type: array
+                      items:
+                        type: string
+                    all:
+                      description: If true, select all rules. Other selectors are ignored.
+                      type: boolean
+                      default: false
+                exceptions:
+                  description: Policy-level exceptions that suppress enforcement for specific workloads.
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - name
+                      - fields
+                      - values
+                    properties:
+                      name:
+                        description: Human-readable name for the exception.
+                        type: string
+                      fields:
+                        description: Fields to match on (e.g., container.image.repository, proc.name).
+                        type: array
+                        items:
+                          type: string
+                      comps:
+                        description: Comparators for each field (=, !=, in, contains, startswith).
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                            - '='
+                            - '!='
+                            - in
+                            - contains
+                            - startswith
+                      values:
+                        description: Value rows. Each row is OR'd. Within a row, fields are AND'd.
+                        type: array
+                        items:
+                          type: array
+                          items:
+                            type: string
+                      mode:
+                        description: When this exception applies: "audit", "enforce", or "all".
+                        type: string
+                        enum:
+                          - audit
+                          - enforce
+                          - all
+                        default: all
+                enforcementConfig:
+                  description: Controls how enforcement is carried out.
+                  type: object
+                  properties:
+                    killMode:
+                      description: 'Kill mode: "graceful" (SIGTERM → grace period → SIGKILL) or "immediate" (SIGKILL).'
+                      type: string
+                      enum:
+                        - graceful
+                        - immediate
+                      default: immediate
+                    gracePeriodSeconds:
+                      description: Seconds to wait after SIGTERM before SIGKILL (graceful mode only).
+                      type: integer
+                      minimum: 0
+                      maximum: 300
+                      default: 5
+                    maxKillsPerPod:
+                      description: Maximum kills per pod per time window for rate limiting.
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                      default: 10
+                    windowSeconds:
+                      description: Rate limit window in seconds.
+                      type: integer
+                      minimum: 10
+                      maximum: 600
+                      default: 60
+                protectedNamespaces:
+                  description: Namespaces exempt from enforcement. Overrides agent defaults.
+                  type: array
+                  items:
+                    type: string
+                  default:
+                    - kube-system
+                    - kube-public
+                networkPolicy:
+                  description: eBPF TC-based network blocking configuration.
+                  type: object
+                  properties:
+                    enabled:
+                      description: Whether network blocking is active.
+                      type: boolean
+                      default: false
+                    defaultTTL:
+                      description: 'Default block duration (Go duration string, e.g., "5m", "10m").'
+                      type: string
+                      default: "5m"
+                    blockList:
+                      description: Pre-configured network blocks.
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - destIP
+                        properties:
+                          destIP:
+                            description: Destination IP address to block (e.g., 169.254.169.254).
+                            type: string
+                            pattern: '^(\d{1,3}\.){3}\d{1,3}$'
+                          destPort:
+                            description: Destination port to block (0 = all ports).
+                            type: integer
+                            minimum: 0
+                            maximum: 65535
+                            default: 0
+                          protocol:
+                            description: 'Protocol to block: tcp, udp, or any.'
+                            type: string
+                            enum:
+                              - tcp
+                              - udp
+                              - any
+                            default: any
+                          reason:
+                            description: Human-readable reason for the block.
+                            type: string
+                          ttl:
+                            description: 'Block-specific TTL (Go duration string, e.g., "30m").'
+                            type: string
+              required:
+                - mode
+            status:
+              description: ScarletRuntimePolicyStatus is the observed state (read-only, set by controller).
+              type: object
+              properties:
+                phase:
+                  description: 'Policy phase: pending, active, or error.'
+                  type: string
+                  enum:
+                    - pending
+                    - active
+                    - error
+                  default: pending
+                message:
+                  description: Human-readable status message.
+                  type: string
+                activeRules:
+                  description: Number of rules currently affected by this policy.
+                  type: integer
+                  default: 0
+                lastUpdated:
+                  description: Timestamp of the last status update.
+                  type: string
+                  format: date-time
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Mode
+          type: string
+          jsonPath: .spec.mode
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: Active Rules
+          type: integer
+          jsonPath: .status.activeRules
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      selectableFields:
+        - jsonPath: .spec.mode
+        - jsonPath: .status.phase

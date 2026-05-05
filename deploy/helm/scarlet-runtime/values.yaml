@@ -1,0 +1,104 @@
+# SecurityScarlet Runtime — Helm Values
+# See SRD Sections 13-14 for resource budgets and deployment architecture
+
+# -- Agent configuration (runs as DaemonSet on every node)
+agent:
+  image:
+    repository: securityscarlet/runtime-agent
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+
+  # -- Operating mode: audit | enforce | simulate
+  mode: audit
+
+  # -- Log level: debug | info | warn | error
+  logLevel: info
+
+  # -- Ring buffer size in MB per node
+  ringBufferSizeMB: 4
+
+  # -- eBPF object directory (inside container)
+  bpfObjectDir: /opt/scarlet/bpf
+
+# -- Controller configuration (cluster-level, HA)
+controller:
+  enabled: true
+  image:
+    repository: securityscarlet/controller
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+
+# -- Container enrichment
+enrichment:
+  criEndpoint: /run/containerd/containerd.sock
+  pidCacheSize: 10000
+  pidCacheTTL: 300
+
+# -- Rule engine
+rules:
+  paths:
+    - /etc/scarlet/rules.d/
+  reloadOnWatch: true
+
+# -- Enforcement safety
+enforcement:
+  protectedNamespaces:
+    - kube-system
+    - kube-public
+  maxKillsPerPod: 10
+  windowSeconds: 60
+  simulateMinimumHours: 48
+
+# -- Output configuration
+output:
+  alertFile: /var/log/scarlet/alerts.jsonl
+  webhookURL: ""
+  webhookHeaders: {}
+
+# -- AI integration (Phase 3)
+ai:
+  enabled: false
+  endpoint: scarlet-ai:9443
+  anomalyThreshold: 0.8
+
+# -- Prometheus metrics
+metrics:
+  enabled: true
+  port: 9090
+
+# -- Webhook server
+webhook:
+  port: 8443
+
+# -- Resource budgets per SRD Section 14
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+# -- Tolerations — run on ALL nodes including control plane
+tolerations:
+  - operator: Exists
+
+# -- Node selector
+nodeSelector: {}
+
+# -- Service account
+serviceAccount:
+  create: true
+  name: ""
+
+# -- Security context — least privilege per SRD Section 15
+securityContext:
+  capabilities:
+    add:
+      - CAP_BPF
+      - CAP_PERFMON
+      - CAP_SYS_PTRACE
+      - CAP_SYS_RESOURCE
+  readOnlyRootFilesystem: true
+  runAsNonRoot: false  # eBPF requires root capabilities
