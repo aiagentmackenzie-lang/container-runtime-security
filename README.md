@@ -9,7 +9,7 @@ SecurityScarlet Runtime is a real-time threat detection system that monitors sys
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
 │  eBPF Probes │────▶│  Agent Core  │────▶│  Rule Engine │
-│ (4 programs) │     │  (pipeline)  │     │  (30 rules)  │
+│ (5 programs) │     │  (pipeline)  │     │  (30 rules)  │
 └──────────────┘     └──────┬───────┘     └──────┬───────┘
                             │                     │
 ┌──────────────┐     ┌──────▼───────┐     ┌───────▼────────┐
@@ -28,7 +28,7 @@ SecurityScarlet Runtime is a real-time threat detection system that monitors sys
 
 | Component | Path | Description |
 |-----------|------|-------------|
-| eBPF Probes | `pkg/ebpf/probes/` | 4 C eBPF programs: process, file, network, escape |
+| eBPF Probes | `pkg/ebpf/probes/` | 5 C eBPF programs: process, file, network, escape, network_tc |
 | eBPF Loader | `pkg/ebpf/` | Ring buffer reader, event decoder, DNS/TLS parser, kernel-side filtering |
 | Agent | `pkg/agent/` | Orchestrator: component wiring, startup/shutdown, configuration |
 | Pipeline | `pkg/pipeline/` | Event processing, anomaly scoring, container enrichment, coalescing |
@@ -42,11 +42,11 @@ SecurityScarlet Runtime is a real-time threat detection system that monitors sys
 | CLI | `pkg/cli/` | `scarletctl` control interface |
 | Docs | `docs/` | API reference, rule writing guide, deployment guide |
 
-> **~35,500 lines of code** across 65+ source files (Go, C, YAML, Proto). **375 tests passing.** ~73k events/sec single-core throughput.
+> **~33,000 lines of code** across 64+ source files (Go, C, YAML, Proto). **375 tests passing.** ~73k events/sec single-core throughput.
 
 ## Rule Catalog
 
-30 built-in rules across 7 categories:
+30 built-in rules across 9 categories:
 
 | Category | Rules | IDs |
 |----------|-------|-----|

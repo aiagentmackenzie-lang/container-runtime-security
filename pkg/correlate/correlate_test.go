@@ -3,6 +3,7 @@ package correlate_test
 
 import (
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -497,7 +498,7 @@ func TestCorrelator_ConcurrentSignals(t *testing.T) {
 	})
 
 	var wg sync.WaitGroup
-	var fired uint32
+	var fired atomic.Uint32
 
 	// Concurrently process signals for different PIDs
 	for i := uint32(0); i < 100; i++ {
@@ -511,7 +512,7 @@ func TestCorrelator_ConcurrentSignals(t *testing.T) {
 				Name: "net_outbound", PID: pid, ContainerID: "abc",
 			})
 			if result != nil {
-				fired++
+				fired.Add(1)
 			}
 		}(i)
 	}
