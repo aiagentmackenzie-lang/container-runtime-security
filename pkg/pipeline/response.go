@@ -92,6 +92,9 @@ type ResponseActor struct {
 	// Enforcement audit log
 	auditLog *EnforcementAuditLog
 
+	// wg tracks pending async graceful-kill escalations so Stop() can drain them.
+	wg sync.WaitGroup
+
 	mu sync.RWMutex
 }
 
@@ -125,6 +128,14 @@ func (r *ResponseActor) SetMode(mode string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.mode = mode
+}
+
+// Stop drains pending graceful-kill escalations and stops the rate limiter's
+// background cleanup goroutine. Safe to call once; the ResponseActor must not
+// be used after Stop().
+func (r *ResponseActor) Stop() {
+	r.wg.Wait()
+	r.rateLimiter.Close()
 }
 
 // AuditLog returns the enforcement audit log.
@@ -239,9 +250,15 @@ func (r *ResponseActor) Enforce(event *EnrichedEvent, match *rules.RuleMatch) En
 		default:
 			result = r.executeImmediateKill(event, match, start)
 		}
-
-		r.auditLog.Record(result)
+	} else {
+		// Non-enforce action (alert/simulate/suppress) — record for audit
+		// completeness so every safety-checked event leaves an audit trail.
+		result.Action = match.Action
+		result.Success = false
+		result.Reason = "non_enforce_action"
 	}
+
+	r.auditLog.Record(result)
 
 	return result
 }
@@ -278,8 +295,11 @@ func (r *ResponseActor) executeImmediateKill(event *EnrichedEvent, match *rules.
 	return result
 }
 
-// executeGracefulKill sends SIGTERM first, waits the configured grace period,
-// then escalates to SIGKILL if the process is still alive.
+// executeGracefulKill sends SIGTERM first, then escalates to SIGKILL
+// asynchronously after the configured grace period. The synchronous return
+// is the SIGTERM result so the pipeline is not blocked for gracePeriod per
+// enforcement. The escalation (if needed) is recorded in the audit log by
+// the background goroutine.
 func (r *ResponseActor) executeGracefulKill(event *EnrichedEvent, match *rules.RuleMatch, start time.Time) EnforcementResult {
 	gracePeriod := time.Duration(r.config.GracePeriodSeconds) * time.Second
 	if gracePeriod <= 0 {
@@ -296,10 +316,11 @@ func (r *ResponseActor) executeGracefulKill(event *EnrichedEvent, match *rules.R
 		Timestamp: start,
 	}
 
-	// Phase 1: Send SIGTERM
+	// Phase 1: Send SIGTERM (synchronous)
 	termErr := r.sendSIGTERM(event.RawEvent.PID)
+	result.LatencyUS = time.Since(start).Microseconds()
 	if termErr != nil {
-		// SIGTERM failed — escalate immediately to SIGKILL
+		// SIGTERM failed — escalate immediately to SIGKILL (synchronous)
 		log.Printf("[response] SIGTERM failed (pid=%d), escalating to SIGKILL: %v",
 			event.RawEvent.PID, termErr)
 		return r.executeImmediateKill(event, match, start)
@@ -309,63 +330,69 @@ func (r *ResponseActor) executeGracefulKill(event *EnrichedEvent, match *rules.R
 		event.RawEvent.PID, event.RawEvent.CommString(),
 		event.ContainerName, match.RuleID, gracePeriod)
 
-	// Phase 2: Wait grace period, then check if process is still alive
-	time.Sleep(gracePeriod)
+	result.Success = true
+	result.Reason = "sigterm_delivered"
 
-	targetPID := int(event.RawEvent.PID)
-	if err := syscall.Kill(targetPID, 0); err != nil {
-		// Process is gone — SIGTERM was sufficient
-		elapsed := time.Since(start)
-		result.LatencyUS = elapsed.Microseconds()
-		result.Success = true
-		result.Reason = "graceful_killed"
-		result.Signal = "SIGTERM"
-		log.Printf("[response] Process terminated gracefully after SIGTERM: pid=%d (rule=%s latency=%dµs)",
-			event.RawEvent.PID, match.RuleID, result.LatencyUS)
-		return result
-	}
+	// Phase 2: Escalate to SIGKILL after the grace period if still alive.
+	// Runs asynchronously so the pipeline is not stalled.
+	r.wg.Add(1)
+	go func() {
+		defer r.wg.Done()
 
-	// Process still alive after grace period — escalate to SIGKILL
-	killErr := r.sendSIGKILL(event.RawEvent.PID)
-	elapsed := time.Since(start)
-	result.LatencyUS = elapsed.Microseconds()
+		time.Sleep(gracePeriod)
 
-	if killErr != nil {
-		result.Success = false
-		result.Reason = fmt.Sprintf("kill_failed_after_grace: %v", killErr)
-		result.Signal = "SIGKILL"
-		log.Printf("[response] SIGKILL after grace failed: pid=%d error=%v (rule=%s latency=%dµs)",
-			event.RawEvent.PID, killErr, match.RuleID, result.LatencyUS)
-	} else {
-		result.Success = true
-		result.Reason = "killed_after_grace"
-		result.Signal = "SIGKILL"
-		result.Action = EnforceSIGKILL
-		log.Printf("[response] SIGKILL after grace period: pid=%d process=%s container=%s (rule=%s latency=%dµs)",
+		targetPID := int(event.RawEvent.PID)
+		if err := syscall.Kill(targetPID, 0); err != nil {
+			// Process is gone — SIGTERM was sufficient.
+			return
+		}
+
+		// Still alive after grace period — escalate to SIGKILL.
+		esc := EnforcementResult{
+			Action:    EnforceSIGKILL,
+			Signal:    "SIGKILL",
+			TargetPID: event.RawEvent.PID,
+			RuleID:    match.RuleID,
+			Container: event.ContainerName,
+			Namespace: event.Namespace,
+			Timestamp: time.Now(),
+		}
+
+		killErr := r.sendSIGKILL(event.RawEvent.PID)
+		esc.LatencyUS = gracePeriod.Microseconds()
+		if killErr != nil {
+			esc.Success = false
+			esc.Reason = fmt.Sprintf("kill_failed_after_grace: %v", killErr)
+		} else {
+			esc.Success = true
+			esc.Reason = "killed_after_grace"
+		}
+
+		r.auditLog.Record(esc)
+		log.Printf("[response] SIGKILL after grace period: pid=%d process=%s container=%s (rule=%s success=%v)",
 			event.RawEvent.PID, event.RawEvent.CommString(),
-			event.ContainerName, match.RuleID, result.LatencyUS)
-	}
+			event.ContainerName, match.RuleID, esc.Success)
+	}()
 
 	return result
 }
 
-// sendSIGKILL sends SIGKILL to the target process.
+// sendSIGKILL sends SIGKILL to the target process and confirms it died.
+// Returns an error if the process is still alive after the signal (which may
+// indicate a zombie not yet reaped by its parent, or insufficient privilege).
 func (r *ResponseActor) sendSIGKILL(pid uint32) error {
 	targetPID := int(pid)
 
-	// Send SIGKILL
-	err := syscall.Kill(targetPID, syscall.Signal(9))
-	if err != nil {
+	if err := syscall.Kill(targetPID, syscall.Signal(9)); err != nil {
 		return fmt.Errorf("kill(%d, SIGKILL): %w", targetPID, err)
 	}
 
-	// Wait briefly to confirm process death
+	// Wait briefly to confirm process death.
 	time.Sleep(10 * time.Millisecond)
 
-	// Check if process still exists
 	if err := syscall.Kill(targetPID, 0); err == nil {
-		// Process still exists — might be a zombie
-		log.Printf("[response] Warning: PID %d still exists after SIGKILL (may be zombie)", targetPID)
+		// Process still exists — zombie or kill lacked privilege.
+		return fmt.Errorf("pid %d still alive after SIGKILL (zombie or insufficient privilege)", targetPID)
 	}
 
 	return nil
@@ -391,6 +418,7 @@ type RateLimiter struct {
 	window       time.Duration
 	mu           sync.RWMutex
 	counters     map[string]*rateCounter
+	stopCh       chan struct{}
 }
 
 type rateCounter struct {
@@ -404,6 +432,7 @@ func NewRateLimiter(max int, window time.Duration) *RateLimiter {
 		maxPerWindow: max,
 		window:       window,
 		counters:     make(map[string]*rateCounter),
+		stopCh:       make(chan struct{}),
 	}
 
 	// Clean up expired counters periodically
@@ -439,15 +468,31 @@ func (rl *RateLimiter) cleanup() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		rl.mu.Lock()
-		now := time.Now()
-		for key, counter := range rl.counters {
-			if now.After(counter.resetAt) {
-				delete(rl.counters, key)
+	for {
+		select {
+		case <-rl.stopCh:
+			return
+		case <-ticker.C:
+			rl.mu.Lock()
+			now := time.Now()
+			for key, counter := range rl.counters {
+				if now.After(counter.resetAt) {
+					delete(rl.counters, key)
+				}
 			}
+			rl.mu.Unlock()
 		}
-		rl.mu.Unlock()
+	}
+}
+
+// Close stops the background cleanup goroutine. Safe to call multiple times.
+// The rate limiter must not be reused after Close.
+func (rl *RateLimiter) Close() {
+	select {
+	case <-rl.stopCh:
+		// already closed
+	default:
+		close(rl.stopCh)
 	}
 }
 

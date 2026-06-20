@@ -1,5 +1,5 @@
 // Package rules - catalog.go
-// Default rule catalog — all 30 rules (R001-R030) across 7 categories
+// Default rule catalog — all 30 rules (R001-R030) across 9 categories
 // as specified in the SRD Section 9.
 
 package rules
@@ -12,7 +12,7 @@ func DefaultRuleCatalog() string {
 var builtinRulesYAML = `
 # ═══════════════════════════════════════════════════════════════════════
 # SecurityScarlet Runtime — Default Rule Catalog
-# 30 rules across 7 categories per SRD Section 9
+# 30 rules across 9 categories per SRD Section 9
 # ═══════════════════════════════════════════════════════════════════════
 
 # ── Lists ─────────────────────────────────────────────────────────────

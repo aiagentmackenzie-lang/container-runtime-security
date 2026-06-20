@@ -959,3 +959,64 @@ func TestSlackWebhookSink_LargeBatch(t *testing.T) {
 		t.Errorf("Expected 2 requests for 25 alerts, got %d", requestCount)
 	}
 }
+// TestWebhookCircuitBreaker_Recovery verifies the circuit breaker opens after
+// consecutive failures and recovers via a half-open probe after
+// CircuitResetAfter (regression guard for the previously-dead circuitResetAfter
+// field that left the breaker permanently open).
+func TestWebhookCircuitBreaker_Recovery(t *testing.T) {
+	var mu sync.Mutex
+	failing := true
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		f := failing
+		mu.Unlock()
+		if f {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	cfg := DefaultWebhookSinkConfig()
+	cfg.URL = server.URL
+	cfg.RetryCount = 0
+	cfg.RetryDelay = 1 * time.Millisecond
+	cfg.Timeout = time.Second
+	cfg.CircuitResetAfter = 40 * time.Millisecond // fast recovery for the test
+
+	sink := NewGenericWebhookSink(cfg)
+	alert := newTestAlert("RTEST", "critical", ActionAlert)
+
+	// Drive failures until the breaker opens (maxFailures default = 5).
+	for i := 0; i < 7; i++ {
+		_ = sink.SendSingle(alert)
+	}
+	stats := sink.Stats()
+	if !stats.CircuitOpen {
+		t.Fatalf("expected circuit breaker OPEN after 7 failures, got stats=%+v", stats)
+	}
+
+	// While open, sends are short-circuited (no HTTP hit).
+	mu.Lock()
+	beforeFlips := stats.Failed
+	_ = beforeFlips
+	failing = false // endpoint now healthy
+	mu.Unlock()
+
+	// Wait past CircuitResetAfter so the next send is a half-open probe.
+	time.Sleep(60 * time.Millisecond)
+
+	// First send after the reset window should probe and succeed, closing the breaker.
+	if err := sink.SendSingle(alert); err != nil {
+		t.Fatalf("expected half-open probe to succeed, got err=%v", err)
+	}
+	stats = sink.Stats()
+	if stats.CircuitOpen {
+		t.Fatalf("expected circuit breaker CLOSED after successful probe, still open: %+v", stats)
+	}
+	if stats.Sent < 1 {
+		t.Fatalf("expected Sent>=1 after recovery, got %d", stats.Sent)
+	}
+}

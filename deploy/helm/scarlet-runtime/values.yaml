@@ -93,11 +93,16 @@ serviceAccount:
   name: ""
 
 # -- Security context — least privilege per SRD Section 15
+# CAP_NET_ADMIN + CAP_SYS_ADMIN are required for TC clsact attach/qdisc
+# (network enforcement). CAP_BPF for map/program load. CAP_PERFMON for
+# tracepoints. CAP_SYS_PTRACE for process enforcement (SIGKILL).
 securityContext:
   capabilities:
     add:
       - CAP_BPF
+      - CAP_NET_ADMIN
       - CAP_PERFMON
+      - CAP_SYS_ADMIN
       - CAP_SYS_PTRACE
       - CAP_SYS_RESOURCE
   readOnlyRootFilesystem: true

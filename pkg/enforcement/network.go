@@ -185,6 +185,10 @@ func (ne *NetworkEnforcer) Start() {
 		ne.mu.Unlock()
 		return
 	}
+	// Recreate the stop channel so Start can be called again after Stop
+	// (e.g. agent restart, integration tests). A closed stopCh from a prior
+		// lifecycle would otherwise make expireBlocks return immediately.
+	ne.stopCh = make(chan struct{})
 	ne.running = true
 	ne.mu.Unlock()
 

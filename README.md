@@ -32,7 +32,7 @@ SecurityScarlet Runtime is a real-time threat detection system that monitors sys
 | eBPF Loader | `pkg/ebpf/` | Ring buffer reader, event decoder, DNS/TLS parser, kernel-side filtering |
 | Agent | `pkg/agent/` | Orchestrator: component wiring, startup/shutdown, configuration |
 | Pipeline | `pkg/pipeline/` | Event processing, anomaly scoring, container enrichment, coalescing |
-| Rule Engine | `pkg/rules/` | 30 compiled rules across 7 categories with O(1) bucket evaluation |
+| Rule Engine | `pkg/rules/` | 30 compiled rules across 9 categories with O(1) bucket evaluation |
 | Correlator | `pkg/correlate/` | 7 multi-signal correlation rules (shell→network, DNS+TLS, etc.) |
 | Enforcement | `pkg/enforcement/` | TC-based network blocking, 7-rule safety protocol, audit logging |
 | Enrichment | `pkg/enrichment/` | Container ID resolution (PID → CRI → K8s), LRU caches |
@@ -42,7 +42,9 @@ SecurityScarlet Runtime is a real-time threat detection system that monitors sys
 | CLI | `pkg/cli/` | `scarletctl` control interface |
 | Docs | `docs/` | API reference, rule writing guide, deployment guide |
 
-> **~33,000 lines of code** across 64+ source files (Go, C, YAML, Proto). **375 tests passing.** ~73k events/sec single-core throughput.
+> ~28,400 lines of code across 54 source files (Go, C, YAML, Proto). **375 tests passing.** ~73k events/sec single-core throughput (rule engine + correlation, benchmarked via synthetic event injection).
+>
+> **Implementation status:** the Go pipeline, rule engine, correlator, enrichment, anomaly scoring, and webhook sinks are implemented and unit-tested. The eBPF kernel load/attach path and TC network-enforcement path are **stubs pending Phase C** (see [docs/remediation_plan.md](docs/remediation_plan.md) and [docs/phase_c_ebpf_handover.md](docs/phase_c_ebpf_handover.md)). The AI triage connector degrades to neutral. See [Implementation Status](#implementation-status) below.
 
 ## Rule Catalog
 
@@ -113,14 +115,21 @@ SecurityScarlet Runtime is a real-time threat detection system that monitors sys
 
 ## Enforcement Safety
 
-The system implements a 7-rule enforcement safety protocol:
-1. **Container attribution** — enforce only on attributed containers (rule never fires on host PIDs)
-2. **Rate limiting** — max 10 enforcements per container per minute
-3. **Protected namespaces** — `kube-system`, `kube-public` are exempt
+The system implements a 7-rule enforcement safety protocol in `pkg/pipeline/response.go`.
+These are mandatory and applied in order before any kill is delivered:
+
+1. **Container attribution** — no enforcement without a resolved container ID
+2. **Simulate-mode check** — simulate mode never delivers signals
+3. **Protected namespaces** — `kube-system`, `kube-public` are exempt (configurable)
 4. **PID 0/1 protection** — never kill PID 0 or 1
-5. **Audit fallback** — failed enforcements downgraded to alert
-6. **Rollback** — enforcement can be disabled instantly via config
-7. **Namespace scope** — enforcements are namespace-scoped, never global
+5. **Self-preservation** — never kill the agent's own PID or PPID
+6. **Rate limiting** — max kills per pod per window (default 10 per 60s)
+7. **Namespace scope required** — enforcements are namespace-scoped, never global
+
+Failed kill attempts (e.g. permission denied, process already gone) are recorded
+in the enforcement audit log and an alert is still emitted alongside the attempt.
+Operating mode can be changed at runtime via the `SetMode` API; CLI mode-switch
+commands are pending implementation (see status table).
 
 ## Quick Start
 
@@ -224,14 +233,36 @@ go vet ./...
 - [Rule Writing Guide](docs/rule_writing_guide.md) — How to write custom YAML detection rules
 - [Deployment Guide](docs/deployment_guide.md) — K8s deployment, Helm config, eBPF requirements
 
+## Implementation Status
+
+Honest per-component status. ✅ = implemented & tested · ⚠️ = partial/local-only · ❌ = stub/pending.
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Rule engine + compiler | ✅ | 30 rules, 9 categories, exception model |
+| Correlator (7 rules) | ✅ | bounded windows, purge loop |
+| Enrichment (CRI/K8s, LRU caches) | ✅ | unit-tested; live CRI needs Linux |
+| Anomaly n-gram scoring | ✅ | JS-divergence + heuristic fallback |
+| Webhook sinks (Slack/PagerDuty/generic) | ✅ | retry, circuit breaker (recovery in Phase D) |
+| Enforcement safety protocol (7 rules) | ✅ | guards a kill path that fires on injected/test events |
+| eBPF probe load + attach | ⚠️ | real `cilium/ebpf` `LoadCollection` + `link.Tracepoint`/`Kprobe`; mock-gated; Linux runtime smoke pending |
+| Ring buffer event reader | ⚠️ | real `ringbuf.Reader` per collection; mock-gated; Linux runtime smoke pending |
+| TC network blocking (kernel) | ⚠️ | real `AttachTCX` + blocklist map `Update`/`Delete`; mock-gated; needs kernel 6.6+ for TCX (classic clsact follow-up) |
+| AI triage connector | ⚠️ | graceful-degradation stub; returns neutral; no gRPC dial — Phase E |
+| OPA exception evaluator | ⚠️ | placeholder, always returns false |
+| `scarletctl` control commands | ⚠️ | `start` runs the agent; `stop`/`status`/`rules`/`events`/mode-switch are stubs — Phase B |
+
 ## Project Status
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| Phase 1 | Foundation — eBPF, rule engine, enrichment, pipeline | ✅ Complete |
-| Phase 2 | Enforcement — TC network blocking, safety protocol, audit | ✅ Complete |
-| Phase 3 | Intelligence — correlation, AI triage, CRD policies, anomaly | ✅ Complete |
+| Phase 1 | Foundation — rule engine, enrichment, pipeline | ✅ Complete |
+| Phase 2 | Enforcement — safety protocol, audit, userspace blocklist | ✅ Complete |
+| Phase 2b | TC kernel enforcement | ❌ Phase C |
+| Phase 3 | Intelligence — correlation, anomaly, CRD policies | ✅ Complete |
+| Phase 3b | AI triage (real gRPC) | ⚠️ Phase E |
 | Phase 4 | Hardening & Scale — webhooks, DNS/TLS, LRU caches, benchmarks | ✅ Complete |
+| Phase C | Real eBPF load/attach + TC | 🔲 Pending (Linux) |
 
 ## License
 

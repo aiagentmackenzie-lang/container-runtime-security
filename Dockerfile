@@ -6,20 +6,30 @@
 # ── Stage 1: eBPF compilation ─────────────────────────────────────────
 FROM alpine:3.19 AS ebpf-builder
 
-RUN apk add --no-cache clang llvm linux-headers elfutils-dev
+# libbpf-dev provides <bpf/bpf_helpers.h>, <bpf/bpf_endian.h>, <bpf/bpf_tracing.h>.
+# bpftool generates vmlinux.h from kernel BTF (CO-RE).
+# The build host MUST expose BTF at /sys/kernel/btf/vmlinux — run the build
+# on a Linux CI runner with a BTF-enabled kernel (>=5.8) or use BTFHub.
+RUN apk add --no-cache clang llvm libbpf-dev linux-headers elfutils-dev bpftool
 
 WORKDIR /build
 
 COPY pkg/ebpf/include/ ./include/
 COPY pkg/ebpf/probes/ ./probes/
 
-# Compile each eBPF probe category
-RUN for prog in process file network escape; do \
+# Generate vmlinux.h from the build host's kernel BTF (CO-RE requirement).
+# If /sys/kernel/btf/vmlinux is unavailable, the build fails loudly — install
+# a BTF-enabled kernel or vendor a BTFHub vmlinux.h into include/ instead.
+RUN bpftool btf dump file /sys/kernel/btf/vmlinux format c > include/vmlinux.h
+
+# Compile each eBPF probe category (all 5, incl. network_tc for enforcement).
+RUN for prog in process file network escape network_tc; do \
+      echo "  Compiling $$prog.bpf.c..."; \
       clang -O2 -g -target bpf \
         -D__TARGET_ARCH_x86 \
         -I./include \
-        -c probes/${prog}.bpf.c \
-        -o ${prog}.o; \
+        -c probes/$${prog}.bpf.c \
+        -o $${prog}.o; \
     done
 
 # ── Stage 2: Go binary ────────────────────────────────────────────────
