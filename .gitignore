@@ -71,3 +71,5 @@ SRD_Container_Runtime_Security_Falco_Clone.md
 HANDOVER.md
 HANDOVER_PROMPT.md
 PUSH_PROMPT.md
+docs/remediation_plan.md
+docs/phase_c_ebpf_handover.md

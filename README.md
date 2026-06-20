@@ -44,7 +44,7 @@ SecurityScarlet Runtime is a real-time threat detection system that monitors sys
 
 > ~28,400 lines of code across 54 source files (Go, C, YAML, Proto). **375 tests passing.** ~73k events/sec single-core throughput (rule engine + correlation, benchmarked via synthetic event injection).
 >
-> **Implementation status:** the Go pipeline, rule engine, correlator, enrichment, anomaly scoring, and webhook sinks are implemented and unit-tested. The eBPF kernel load/attach path and TC network-enforcement path are **stubs pending Phase C** (see [docs/remediation_plan.md](docs/remediation_plan.md) and [docs/phase_c_ebpf_handover.md](docs/phase_c_ebpf_handover.md)). The AI triage connector degrades to neutral. See [Implementation Status](#implementation-status) below.
+> **Implementation status:** the Go pipeline, rule engine, correlator, enrichment, anomaly scoring, and webhook sinks are implemented and unit-tested. The eBPF kernel load/attach path and TC network-enforcement path are **code-complete but pending Linux runtime verification (Phase C)**. The AI triage connector degrades to neutral. See [Implementation Status](#implementation-status) below.
 
 ## Rule Catalog
 
