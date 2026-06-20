@@ -27,11 +27,15 @@ build:
 	@mkdir -p $(BUILD_DIR)
 	$(GO) build $(GOFLAGS) -ldflags "$(LD_FLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/scarletctl/
 
-## generate-ebpf: Compile eBPF C programs to BPF object files
+## generate-ebpf: Compile eBPF C programs to BPF object files (all 5 probes)
 generate-ebpf:
 	@echo "Generating eBPF object files..."
 	@mkdir -p $(BUILD_DIR)/bpf
-	@for prog in process file network escape; do \
+	@# Generate vmlinux.h from kernel BTF (requires bpftool + BTF-enabled kernel).
+	@command -v bpftool >/dev/null 2>&1 \
+		&& bpftool btf dump file /sys/kernel/btf/vmlinux format c > $(BPF_INCLUDE)/vmlinux.h \
+		|| echo "  Warning: bpftool/BTF unavailable — ensure $(BPF_INCLUDE)/vmlinux.h exists (BTFHub)"
+	@for prog in process file network escape network_tc; do \
 		echo "  Compiling $$prog.bpf.c..."; \
 		clang -O2 -g -target bpf \
 			-D__TARGET_ARCH_x86 \

@@ -74,6 +74,11 @@ type WebhookSinkConfig struct {
 	// TLSMinVersion sets the minimum TLS version (default: TLS 1.2).
 	TLSMinVersion uint16 `json:"tls_min_version,omitempty" yaml:"tls_min_version,omitempty"`
 
+	// CircuitResetAfter is how long after the last failure before the circuit
+	// breaker attempts a half-open probe (default: 60s). Without this, a
+	// tripped breaker never recovers until process restart.
+	CircuitResetAfter time.Duration `json:"circuit_reset_after,omitempty" yaml:"circuit_reset_after,omitempty"`
+
 	// Enabled controls whether this sink is active.
 	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 
@@ -156,6 +161,7 @@ type baseWebhookSink struct {
 	circuitOpen         bool
 	maxFailures         int // Opens circuit after this many consecutive failures (default: 5)
 	circuitResetAfter   time.Duration
+	lastFailureAt       time.Time // when the last failure happened (for half-open recovery)
 
 	// Batch
 	batchMu    sync.Mutex
@@ -205,12 +211,17 @@ func newBaseWebhookSink(cfg WebhookSinkConfig) *baseWebhookSink {
 		Timeout:   cfg.Timeout,
 	}
 
+	resetAfter := cfg.CircuitResetAfter
+	if resetAfter <= 0 {
+		resetAfter = 60 * time.Second
+	}
+
 	return &baseWebhookSink{
 		config:            cfg,
 		client:            client,
 		enabled:           cfg.Enabled,
 		maxFailures:       5,
-		circuitResetAfter: 60 * time.Second,
+		circuitResetAfter: resetAfter,
 		batchBuf:          make([]*Alert, 0, cfg.BatchSize),
 		batchDone:         make(chan struct{}),
 	}
@@ -222,11 +233,19 @@ func (b *baseWebhookSink) sendWithRetry(payload []byte) error {
 		return nil
 	}
 
-	// Check circuit breaker
+	// Check circuit breaker — allow a half-open probe after circuitResetAfter
+	// so the breaker can recover without a process restart.
 	b.mu.Lock()
 	if b.circuitOpen {
-		b.mu.Unlock()
-		return fmt.Errorf("webhook circuit breaker open for %s", b.config.URL)
+		if time.Since(b.lastFailureAt) > b.circuitResetAfter {
+			// Half-open: allow this single attempt to probe the endpoint.
+			b.circuitOpen = false
+			log.Printf("[webhook] Circuit breaker half-open for %s (probing after %v)",
+				b.config.URL, b.circuitResetAfter)
+		} else {
+			b.mu.Unlock()
+			return fmt.Errorf("webhook circuit breaker open for %s", b.config.URL)
+		}
 	}
 	b.mu.Unlock()
 
@@ -277,6 +296,7 @@ func (b *baseWebhookSink) sendWithRetry(payload []byte) error {
 			b.mu.Lock()
 			b.failed++
 			b.consecutiveFailures++
+			b.lastFailureAt = time.Now()
 			if b.consecutiveFailures >= b.maxFailures {
 				b.circuitOpen = true
 				log.Printf("[webhook] Circuit breaker OPEN for %s after %d consecutive failures",
@@ -293,6 +313,7 @@ func (b *baseWebhookSink) sendWithRetry(payload []byte) error {
 	b.mu.Lock()
 	b.failed++
 	b.consecutiveFailures++
+	b.lastFailureAt = time.Now()
 	if b.consecutiveFailures >= b.maxFailures {
 		b.circuitOpen = true
 		log.Printf("[webhook] Circuit breaker OPEN for %s after %d consecutive failures",
@@ -819,16 +840,25 @@ func (g *GenericWebhookSink) Stats() WebhookSinkStats {
 
 // ── Webhook Manager ───────────────────────────────────────────────────
 
+// webhookMaxConcurrent bounds the number of in-flight webhook HTTP requests
+// across all sinks managed by a single WebhookManager. This prevents goroutine
+// and connection explosion under alert storms (each request can hold a
+// connection for up to RetryCount × RetryDelay × 2).
+const webhookMaxConcurrent = 16
+
 // WebhookManager coordinates multiple webhook sinks and forwards alerts
 // to all active sinks concurrently.
 type WebhookManager struct {
 	sinks []WebhookSink
+	sem   chan struct{} // counting semaphore bounding concurrent sends
 	mu    sync.RWMutex
 }
 
 // NewWebhookManager creates a webhook manager from the given configs.
 func NewWebhookManager(configs []WebhookSinkConfig) *WebhookManager {
-	wm := &WebhookManager{}
+	wm := &WebhookManager{
+		sem: make(chan struct{}, webhookMaxConcurrent),
+	}
 
 	for _, cfg := range configs {
 		if !cfg.Enabled {
@@ -866,13 +896,18 @@ func NewWebhookSink(cfg WebhookSinkConfig) (WebhookSink, error) {
 }
 
 // Send forwards an alert to all active webhook sinks concurrently.
+// Concurrent sends are bounded by webhookMaxConcurrent; when all slots are
+// taken this call blocks (backpressure to the alert emitter) rather than
+// spawning unbounded goroutines.
 func (wm *WebhookManager) Send(alert *Alert) {
 	wm.mu.RLock()
 	sinks := wm.sinks
 	wm.mu.RUnlock()
 
 	for _, sink := range sinks {
+		wm.sem <- struct{}{} // acquire a slot (blocks at cap)
 		go func(s WebhookSink) {
+			defer func() { <-wm.sem }() // release
 			if err := s.SendSingle(alert); err != nil {
 				log.Printf("[webhook] Error sending alert to %s: %v", s.Stats().URL, err)
 			}

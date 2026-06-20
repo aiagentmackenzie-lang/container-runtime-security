@@ -269,6 +269,11 @@ func (p *Pipeline) Stop() {
 	close(p.stopCh)
 	p.wg.Wait()
 
+	// Drain pending graceful-kill escalations and stop the rate limiter.
+	if p.response != nil {
+		p.response.Stop()
+	}
+
 	// Flush coalescer
 	p.coalescer.Flush(p.alertEmit)
 

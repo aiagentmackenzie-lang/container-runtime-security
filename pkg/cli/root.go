@@ -4,7 +4,9 @@ package cli
 import (
 	"fmt"
 	"os"
+	"sort"
 
+	"github.com/securityscarlet/runtime/pkg/rules"
 	"github.com/spf13/cobra"
 )
 
@@ -132,20 +134,19 @@ var rulesListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List loaded rules",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("SecurityScarlet Runtime — Rule Catalog")
-		fmt.Println("======================================")
+		engine, err := rules.NewEngine(rules.EngineConfig{})
+		if err != nil {
+			return fmt.Errorf("failed to load rule engine: %w", err)
+		}
+		all := engine.AllRules()
+		sort.Slice(all, func(i, j int) bool { return all[i].ID < all[j].ID })
+		fmt.Printf("SecurityScarlet Runtime — %d rules loaded (%d enforce, %d alert)\n",
+			engine.RuleCount(), engine.EnforceCount(), engine.AlertCount())
 		fmt.Println()
-		fmt.Println("30 rules across 7 categories:")
-		fmt.Println()
-		fmt.Println("  ESCAPE:      R001-R007  (7 rules)")
-		fmt.Println("  CRYPTO:      R008-R013  (6 rules)")
-		fmt.Println("  SHELL:       R014-R017  (4 rules)")
-		fmt.Println("  CREDENTIAL:  R018-R020  (3 rules)")
-		fmt.Println("  PRIVILEGE:   R021-R023  (3 rules)")
-		fmt.Println("  DRIFT:       R024-R025  (2 rules)")
-		fmt.Println("  NET:         R026-R028  (3 rules)")
-		fmt.Println("  PTRACE:      R029       (1 rule)")
-		fmt.Println("  CVE:         R030       (1 rule)")
+		fmt.Printf("%-6s  %-10s  %-10s  %s\n", "ID", "ACTION", "PRIORITY", "NAME")
+		for _, r := range all {
+			fmt.Printf("%-6s  %-10s  %-10s  %s\n", r.ID, r.Action, r.Priority, r.Name)
+		}
 		return nil
 	},
 }
@@ -155,8 +156,18 @@ var rulesValidateCmd = &cobra.Command{
 	Short: "Validate a rules file",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Printf("Validating rules file: %s\n", args[0])
-		// Parse and validate
+		res, err := rules.ValidateFile(args[0])
+		if err != nil {
+			return fmt.Errorf("validate %s: %w", args[0], err)
+		}
+		fmt.Printf("Validated %s: %d rules, %d macros, %d lists\n", args[0], res.Rules, res.Macros, res.Lists)
+		if len(res.Errors) > 0 {
+			fmt.Fprintf(os.Stderr, "\n%d error(s):\n", len(res.Errors))
+			for _, e := range res.Errors {
+				fmt.Fprintf(os.Stderr, "  - %s\n", e)
+			}
+			os.Exit(1)
+		}
 		fmt.Println("Validation complete: no errors found.")
 		return nil
 	},

@@ -6,6 +6,8 @@ package rules
 import (
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -178,23 +180,46 @@ func (e *Engine) loadDefaultLists() {
 }
 
 // loadRules loads and compiles rules from all configured paths.
+// The built-in default catalog is always loaded first as a baseline.
+// Configured RulePaths (files or directories of *.yaml/*.yml) are then
+// loaded and may override or augment the defaults (same rule ID replaces).
 func (e *Engine) loadRules() error {
-	// Load built-in default rules
-	defaultRules := DefaultRuleCatalog()
 	parser := NewParser(e.lists)
+	macros := make(map[string]MacroDef)
 
-	ruleDefs, macroDefs, listDefs, err := parser.ParseYAML([]byte(defaultRules))
-	if err != nil {
-		return fmt.Errorf("failed to parse default rules: %w", err)
+	// 1. Always load the built-in default catalog as the baseline.
+	if err := e.loadYAML(DefaultRuleCatalog(), parser, macros); err != nil {
+		return fmt.Errorf("failed to load default rules: %w", err)
 	}
 
-	// Merge lists from rule files
+	// 2. Load user-configured rule paths (override/augment defaults).
+	for _, p := range e.config.RulePaths {
+		if err := e.loadRulePath(p, parser, macros); err != nil {
+			log.Printf("[rules] Warning: failed to load rule path %s: %v", p, err)
+		}
+	}
+
+	log.Printf("[rules] Rules loaded: %d total (%d enforce, %d alert)",
+		e.ruleCount.Load(), e.enforceCount.Load(), e.alertCount.Load())
+
+	return nil
+}
+
+// loadYAML parses a single YAML document and merges its lists, macros, and
+// rules into the engine. Lists and macros accumulate across documents;
+// a rule with an existing ID replaces the prior compiled rule.
+func (e *Engine) loadYAML(src string, parser *Parser, macros map[string]MacroDef) error {
+	ruleDefs, macroDefs, listDefs, err := parser.ParseYAML([]byte(src))
+	if err != nil {
+		return err
+	}
+
+	// Merge lists from this document
 	for _, l := range listDefs {
 		e.lists[l.Name] = l
 	}
 
-	// Compile macros
-	macros := make(map[string]MacroDef)
+	// Accumulate macros
 	for _, m := range macroDefs {
 		macros[m.Name] = m
 	}
@@ -208,11 +233,112 @@ func (e *Engine) loadRules() error {
 		}
 		e.addCompiledRule(compiled)
 	}
-
-	log.Printf("[rules] Rules loaded: %d total (%d enforce, %d alert)",
-		e.ruleCount.Load(), e.enforceCount.Load(), e.alertCount.Load())
-
 	return nil
+}
+
+// loadRulePath loads rules from a file or directory. Directories are walked
+// for *.yaml / *.yml files (non-recursive).
+func (e *Engine) loadRulePath(p string, parser *Parser, macros map[string]MacroDef) error {
+	info, err := os.Stat(p)
+	if err != nil {
+		return err
+	}
+	if info.IsDir() {
+		entries, err := os.ReadDir(p)
+		if err != nil {
+			return err
+		}
+		for _, ent := range entries {
+			if ent.IsDir() {
+				continue
+			}
+			name := ent.Name()
+			if !strings.HasSuffix(name, ".yaml") && !strings.HasSuffix(name, ".yml") {
+				continue
+			}
+			data, err := os.ReadFile(filepath.Join(p, name))
+			if err != nil {
+				return err
+			}
+			if err := e.loadYAML(string(data), parser, macros); err != nil {
+				return fmt.Errorf("%s: %w", name, err)
+			}
+		}
+		return nil
+	}
+	data, err := os.ReadFile(p)
+	if err != nil {
+		return err
+	}
+	return e.loadYAML(string(data), parser, macros)
+}
+
+// AllRules returns a snapshot of all compiled rules (read-only). The slice
+// is a copy; callers must not mutate the compiled rules. Exported for
+// tooling (e.g. scarletctl rules list).
+func (e *Engine) AllRules() []*CompiledRule {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	out := make([]*CompiledRule, 0, len(e.rules))
+	for _, r := range e.rules {
+		out = append(out, r)
+	}
+	return out
+}
+
+// ValidationResult summarizes a standalone rule-file validation.
+type ValidationResult struct {
+	Rules  int
+	Macros int
+	Lists  int
+	Errors []string
+}
+
+// ValidateFile parses and compiles a rule file against the built-in default
+// lists/macros, returning any parse or compile errors. It does not mutate
+// any engine state. Used by `scarletctl rules validate`.
+func ValidateFile(path string) (*ValidationResult, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return ValidateYAML(data)
+}
+
+// ValidateYAML parses and compiles rule YAML against the built-in default
+// lists/macros, returning any parse or compile errors.
+func ValidateYAML(data []byte) (*ValidationResult, error) {
+	e := &Engine{
+		buckets: make(map[uint8][]*CompiledRule),
+		rules:   make(map[string]*CompiledRule),
+		lists:   make(map[string]ListValues),
+	}
+	e.loadDefaultLists()
+
+	parser := NewParser(e.lists)
+	ruleDefs, macroDefs, listDefs, err := parser.ParseYAML(data)
+	res := &ValidationResult{}
+	if err != nil {
+		res.Errors = append(res.Errors, err.Error())
+		return res, nil
+	}
+	res.Lists = len(listDefs)
+	res.Macros = len(macroDefs)
+
+	macros := make(map[string]MacroDef)
+	for _, m := range macroDefs {
+		macros[m.Name] = m
+	}
+	for _, l := range listDefs {
+		e.lists[l.Name] = l
+	}
+	for _, rd := range ruleDefs {
+		res.Rules++
+		if _, err := e.compileRule(rd, macros); err != nil {
+			res.Errors = append(res.Errors, fmt.Sprintf("rule %q: %v", rd.Name, err))
+		}
+	}
+	return res, nil
 }
 
 // addCompiledRule inserts a compiled rule into the engine's lookup structures.
