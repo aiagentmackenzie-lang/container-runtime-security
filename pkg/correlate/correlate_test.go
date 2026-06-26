@@ -707,8 +707,8 @@ func TestCorrelationSpec_Fields(t *testing.T) {
 		RuleID:  "R014",
 		Window:  5 * time.Second,
 		Signals: []string{"shell_procs", "net_outbound"},
-		Logic:    correlate.LogicAll,
-		GroupBy:  []string{"proc.pid"},
+		Logic:   correlate.LogicAll,
+		GroupBy: []string{"proc.pid"},
 	}
 
 	if spec.RuleID != "R014" {

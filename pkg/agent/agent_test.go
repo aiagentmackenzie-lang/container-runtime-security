@@ -10,8 +10,8 @@ import (
 	"github.com/securityscarlet/runtime/pkg/agent"
 	"github.com/securityscarlet/runtime/pkg/ai"
 	"github.com/securityscarlet/runtime/pkg/correlate"
-	"github.com/securityscarlet/runtime/pkg/enforcement"
 	"github.com/securityscarlet/runtime/pkg/ebpf"
+	"github.com/securityscarlet/runtime/pkg/enforcement"
 	"github.com/securityscarlet/runtime/pkg/enrichment"
 	"github.com/securityscarlet/runtime/pkg/output"
 	"github.com/securityscarlet/runtime/pkg/pipeline"
@@ -166,11 +166,11 @@ func TestWiring_Correlator_ReverseShellPattern(t *testing.T) {
 
 	// Send shell_procs signal
 	result := correl.ProcessSignal(&correlate.Signal{
-		Name:       "shell_procs",
-		Timestamp:  time.Now(),
-		PID:        1234,
+		Name:        "shell_procs",
+		Timestamp:   time.Now(),
+		PID:         1234,
 		ContainerID: "container-abc",
-		Namespace:  "default",
+		Namespace:   "default",
 	})
 	if result != nil {
 		t.Error("Correlation should not fire with only one signal")
@@ -178,11 +178,11 @@ func TestWiring_Correlator_ReverseShellPattern(t *testing.T) {
 
 	// Send net_outbound signal for same PID
 	result = correl.ProcessSignal(&correlate.Signal{
-		Name:       "net_outbound",
-		Timestamp:  time.Now(),
-		PID:        1234,
+		Name:        "net_outbound",
+		Timestamp:   time.Now(),
+		PID:         1234,
 		ContainerID: "container-abc",
-		Namespace:  "default",
+		Namespace:   "default",
 	})
 	if result == nil {
 		t.Error("Correlation should fire when both signals arrive")

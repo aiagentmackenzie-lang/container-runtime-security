@@ -74,19 +74,19 @@ type RuleCondition func(event *EnrichedEventForRule) bool
 // EnrichedEventForRule is the view of an event exposed to rule conditions.
 // It carries the raw eBPF event plus enriched container/K8s metadata.
 type EnrichedEventForRule struct {
-	Event    *ebpf.ScarletEvent
+	Event *ebpf.ScarletEvent
 
 	// Enrichment fields (populated by pipeline before evaluation)
-	ContainerID        string
-	ContainerName      string
-	ContainerImage     string
+	ContainerID         string
+	ContainerName       string
+	ContainerImage      string
 	ContainerAttributed bool
-	PodName            string
-	Namespace          string
-	ServiceAccount     string
-	PodLabels          map[string]string
-	Privileged         bool
-	NodeName           string
+	PodName             string
+	Namespace           string
+	ServiceAccount      string
+	PodLabels           map[string]string
+	Privileged          bool
+	NodeName            string
 }
 
 // CorrelationSpec defines multi-signal correlation for a rule.
@@ -106,8 +106,8 @@ type CorrelationRule struct {
 
 // SignalWindow tracks signal matches within a time window.
 type SignalWindow struct {
-	Matches  map[string]time.Time // signal_name → timestamp
-	Started  time.Time
+	Matches map[string]time.Time // signal_name → timestamp
+	Started time.Time
 }
 
 // Exception defines an exception that suppresses a rule match.
@@ -680,19 +680,19 @@ func (e *Engine) formatOutput(template string, event *EnrichedEventForRule) stri
 
 	// Simple field interpolation
 	replacements := map[string]string{
-		"%proc.name":     event.Event.CommString(),
-		"%proc.pid":      fmt.Sprintf("%d", event.Event.PID),
-		"%proc.cmdline":  event.Event.Args(),
-		"%proc.exe":      event.Event.Filename(),
-		"%user.name":     fmt.Sprintf("uid=%d", event.Event.UID),
-		"%container.id":  event.ContainerID,
-		"%container.name": event.ContainerName,
+		"%proc.name":                  event.Event.CommString(),
+		"%proc.pid":                   fmt.Sprintf("%d", event.Event.PID),
+		"%proc.cmdline":               event.Event.Args(),
+		"%proc.exe":                   event.Event.Filename(),
+		"%user.name":                  fmt.Sprintf("uid=%d", event.Event.UID),
+		"%container.id":               event.ContainerID,
+		"%container.name":             event.ContainerName,
 		"%container.image.repository": event.ContainerImage,
-		"%fd.name":       event.Event.FilePath(),
-		"%fd.rip":        event.Event.RemoteIP(),
-		"%fd.rport":      fmt.Sprintf("%d", event.Event.RemotePort()),
-		"%evt.type":      event.Event.EventTypeString(),
-		"%evt.arg.nstype": fmt.Sprintf("%d", event.Event.Payload.Escape.NSType),
+		"%fd.name":                    event.Event.FilePath(),
+		"%fd.rip":                     event.Event.RemoteIP(),
+		"%fd.rport":                   fmt.Sprintf("%d", event.Event.RemotePort()),
+		"%evt.type":                   event.Event.EventTypeString(),
+		"%evt.arg.nstype":             fmt.Sprintf("%d", event.Event.Payload.Escape.NSType),
 	}
 
 	for key, val := range replacements {

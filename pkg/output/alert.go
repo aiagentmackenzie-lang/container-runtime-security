@@ -23,48 +23,48 @@ const (
 
 // Alert represents a security alert emitted by the rule engine.
 type Alert struct {
-	Timestamp      time.Time              `json:"timestamp"`
-	RuleID         string                  `json:"rule_id"`
-	RuleName       string                  `json:"rule_name"`
-	Priority       string                  `json:"priority"`
-	Action         string                  `json:"action"`
-	Output         string                  `json:"output"`
-	ProcessName    string                  `json:"process_name"`
-	PID            uint32                  `json:"pid"`
-	PPID           uint32                  `json:"ppid"`
-	UID            uint32                  `json:"uid"`
-	GID            uint32                  `json:"gid"`
-	Category       string                  `json:"category"`
-	EventType      string                  `json:"event_type"`
-	ContainerID    string                  `json:"container_id,omitempty"`
-	ContainerName  string                  `json:"container_name,omitempty"`
-	ContainerImage string                  `json:"container_image,omitempty"`
-	PodName        string                  `json:"pod_name,omitempty"`
-	Namespace      string                  `json:"namespace,omitempty"`
-	ServiceAccount string                  `json:"service_account,omitempty"`
-	NodeName       string                  `json:"node_name,omitempty"`
-	Tags           []string                `json:"tags,omitempty"`
-	Simulated      bool                    `json:"simulated,omitempty"`
+	Timestamp         time.Time               `json:"timestamp"`
+	RuleID            string                  `json:"rule_id"`
+	RuleName          string                  `json:"rule_name"`
+	Priority          string                  `json:"priority"`
+	Action            string                  `json:"action"`
+	Output            string                  `json:"output"`
+	ProcessName       string                  `json:"process_name"`
+	PID               uint32                  `json:"pid"`
+	PPID              uint32                  `json:"ppid"`
+	UID               uint32                  `json:"uid"`
+	GID               uint32                  `json:"gid"`
+	Category          string                  `json:"category"`
+	EventType         string                  `json:"event_type"`
+	ContainerID       string                  `json:"container_id,omitempty"`
+	ContainerName     string                  `json:"container_name,omitempty"`
+	ContainerImage    string                  `json:"container_image,omitempty"`
+	PodName           string                  `json:"pod_name,omitempty"`
+	Namespace         string                  `json:"namespace,omitempty"`
+	ServiceAccount    string                  `json:"service_account,omitempty"`
+	NodeName          string                  `json:"node_name,omitempty"`
+	Tags              []string                `json:"tags,omitempty"`
+	Simulated         bool                    `json:"simulated,omitempty"`
 	EnforcementResult *EnforcementResultAlert `json:"enforcement_result,omitempty"`
-	CorrelationResult *CorrelationResultAlert  `json:"correlation_result,omitempty"`
-	EventCount     uint64                  `json:"event_count,omitempty"`
-	Coalesced      bool                    `json:"coalesced,omitempty"`
+	CorrelationResult *CorrelationResultAlert `json:"correlation_result,omitempty"`
+	EventCount        uint64                  `json:"event_count,omitempty"`
+	Coalesced         bool                    `json:"coalesced,omitempty"`
 
 	// Event-specific fields
-	Filename    string `json:"filename,omitempty"`
-	CmdLine     string `json:"cmdline,omitempty"`
-	FilePath    string `json:"file_path,omitempty"`
-	FileFlags   uint32 `json:"file_flags,omitempty"`
-	FileMode    uint32 `json:"file_mode,omitempty"`
-	RemoteIP    string `json:"remote_ip,omitempty"`
-	RemotePort  uint16 `json:"remote_port,omitempty"`
-	LocalIP     string `json:"local_ip,omitempty"`
-	LocalPort   uint16 `json:"local_port,omitempty"`
-	NSType      uint32 `json:"ns_type,omitempty"`
-	OldUID      uint32 `json:"old_uid,omitempty"`
-	NewUID      uint32 `json:"new_uid,omitempty"`
-	Capability  uint32 `json:"capability,omitempty"`
-	ModeFlags   uint32 `json:"mode_flags,omitempty"`
+	Filename   string `json:"filename,omitempty"`
+	CmdLine    string `json:"cmdline,omitempty"`
+	FilePath   string `json:"file_path,omitempty"`
+	FileFlags  uint32 `json:"file_flags,omitempty"`
+	FileMode   uint32 `json:"file_mode,omitempty"`
+	RemoteIP   string `json:"remote_ip,omitempty"`
+	RemotePort uint16 `json:"remote_port,omitempty"`
+	LocalIP    string `json:"local_ip,omitempty"`
+	LocalPort  uint16 `json:"local_port,omitempty"`
+	NSType     uint32 `json:"ns_type,omitempty"`
+	OldUID     uint32 `json:"old_uid,omitempty"`
+	NewUID     uint32 `json:"new_uid,omitempty"`
+	Capability uint32 `json:"capability,omitempty"`
+	ModeFlags  uint32 `json:"mode_flags,omitempty"`
 
 	// Anomaly score from n-gram analysis (0.0 = normal, 1.0 = highly anomalous)
 	AnomalyScore float64 `json:"anomaly_score,omitempty"`
@@ -73,7 +73,7 @@ type Alert struct {
 // EnforcementResultAlert records enforcement outcome for the alert.
 type EnforcementResultAlert struct {
 	Action    string `json:"action"`
-	Signal    string `json:"signal,omitempty"`  // SIGTERM or SIGKILL
+	Signal    string `json:"signal,omitempty"` // SIGTERM or SIGKILL
 	TargetPID uint32 `json:"target_pid"`
 	Success   bool   `json:"success"`
 	Reason    string `json:"reason"`
@@ -102,8 +102,8 @@ type AlertEmitter struct {
 	file    *os.File
 	encoder *json.Encoder
 
-	mu     sync.Mutex
-	count  uint64
+	mu    sync.Mutex
+	count uint64
 }
 
 // AlertEmitterConfig holds alert emitter configuration.

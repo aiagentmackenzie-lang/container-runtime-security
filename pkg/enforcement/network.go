@@ -35,18 +35,18 @@ import (
 type BlockType uint8
 
 const (
-	BlockTypeIPv4       BlockType = 1 // Block by destination IPv4 address
-	BlockTypeIPv6       BlockType = 2 // Block by destination IPv6 address (future)
-	BlockTypePort       BlockType = 3 // Block by destination port (any IP)
-	BlockTypeCombined   BlockType = 4 // Block by IP + port + protocol
+	BlockTypeIPv4     BlockType = 1 // Block by destination IPv4 address
+	BlockTypeIPv6     BlockType = 2 // Block by destination IPv6 address (future)
+	BlockTypePort     BlockType = 3 // Block by destination port (any IP)
+	BlockTypeCombined BlockType = 4 // Block by IP + port + protocol
 )
 
 // Protocol specifies the network protocol to block.
 type Protocol uint8
 
 const (
-	ProtocolAny Protocol = 0 // Any protocol
-	ProtocolTCP Protocol = 6 // TCP
+	ProtocolAny Protocol = 0  // Any protocol
+	ProtocolTCP Protocol = 6  // TCP
 	ProtocolUDP Protocol = 17 // UDP
 )
 
@@ -69,15 +69,15 @@ func (p Protocol) String() string {
 // It specifies what destination (IP, port, protocol) to block, why it
 // was blocked (rule ID, reason), and how long the block should last.
 type BlocklistEntry struct {
-	DestIP     net.IP     `json:"dest_ip"`
-	DestPort   uint16     `json:"dest_port"`
-	Protocol   Protocol   `json:"protocol"`
-	BlockType  BlockType  `json:"block_type"`
-	RuleID     string     `json:"rule_id"`
-	Reason     string     `json:"reason"`
-	TTL        time.Duration `json:"ttl"`
-	AddedAt    time.Time  `json:"added_at"`
-	ExpiresAt  time.Time  `json:"expires_at"`
+	DestIP    net.IP        `json:"dest_ip"`
+	DestPort  uint16        `json:"dest_port"`
+	Protocol  Protocol      `json:"protocol"`
+	BlockType BlockType     `json:"block_type"`
+	RuleID    string        `json:"rule_id"`
+	Reason    string        `json:"reason"`
+	TTL       time.Duration `json:"ttl"`
+	AddedAt   time.Time     `json:"added_at"`
+	ExpiresAt time.Time     `json:"expires_at"`
 }
 
 // BlocklistKey is the BPF map key for looking up blocks.
@@ -114,7 +114,7 @@ type NetworkEnforcer struct {
 
 	// Configuration
 	defaultTTL time.Duration // Default block duration (5 min)
-	ifaceName string           // Network interface to attach TC programs
+	ifaceName  string        // Network interface to attach TC programs
 
 	// BPF map reference (nil when eBPF not available)
 	bpfMapFD int // File descriptor for the BPF blocklist map
@@ -123,8 +123,8 @@ type NetworkEnforcer struct {
 	tcLoader BlocklistUpdater
 
 	// Stats
-	blocksAdded   map[string]int64  // rule_id → count
-	blocksExpired  int64
+	blocksAdded   map[string]int64 // rule_id → count
+	blocksExpired int64
 	blocksRemoved int64
 
 	// Lifecycle
@@ -136,8 +136,8 @@ type NetworkEnforcer struct {
 // NewNetworkEnforcer creates a new network enforcer with default settings.
 func NewNetworkEnforcer() *NetworkEnforcer {
 	return &NetworkEnforcer{
-		entries:      make(map[BlocklistKey]*BlocklistEntry),
-		defaultTTL:   5 * time.Minute,
+		entries:     make(map[BlocklistKey]*BlocklistEntry),
+		defaultTTL:  5 * time.Minute,
 		ifaceName:   "eth0",
 		bpfMapFD:    -1, // Not connected to BPF map yet
 		blocksAdded: make(map[string]int64),
@@ -187,7 +187,7 @@ func (ne *NetworkEnforcer) Start() {
 	}
 	// Recreate the stop channel so Start can be called again after Stop
 	// (e.g. agent restart, integration tests). A closed stopCh from a prior
-		// lifecycle would otherwise make expireBlocks return immediately.
+	// lifecycle would otherwise make expireBlocks return immediately.
 	ne.stopCh = make(chan struct{})
 	ne.running = true
 	ne.mu.Unlock()
@@ -245,7 +245,7 @@ func (ne *NetworkEnforcer) BlockWithTTL(ip net.IP, port uint16, protocol Protoco
 		DestIP:    ip,
 		DestPort:  port,
 		Protocol:  protocol,
-		BlockType:  BlockTypeCombined,
+		BlockType: BlockTypeCombined,
 		RuleID:    ruleID,
 		Reason:    reason,
 		TTL:       ttl,
@@ -527,11 +527,11 @@ func (ne *NetworkEnforcer) BlockCloudMetadata() error {
 
 // NetworkEnforcerStats holds statistics about network enforcement.
 type NetworkEnforcerStats struct {
-	ActiveBlocks  int              `json:"active_blocks"`
-	TotalAdded    int64            `json:"total_added"`
-	TotalExpired  int64            `json:"total_expired"`
-	TotalRemoved  int64            `json:"total_removed"`
-	BlocksByRule  map[string]int64 `json:"blocks_by_rule"`
+	ActiveBlocks int              `json:"active_blocks"`
+	TotalAdded   int64            `json:"total_added"`
+	TotalExpired int64            `json:"total_expired"`
+	TotalRemoved int64            `json:"total_removed"`
+	BlocksByRule map[string]int64 `json:"blocks_by_rule"`
 }
 
 // Stats returns current network enforcement statistics.
@@ -547,9 +547,9 @@ func (ne *NetworkEnforcer) Stats() NetworkEnforcerStats {
 	return NetworkEnforcerStats{
 		ActiveBlocks: ne.BlockCount(),
 		TotalAdded:   total,
-		TotalExpired:  ne.blocksExpired,
-		TotalRemoved:  ne.blocksRemoved,
-		BlocksByRule:  ne.blocksAdded,
+		TotalExpired: ne.blocksExpired,
+		TotalRemoved: ne.blocksRemoved,
+		BlocksByRule: ne.blocksAdded,
 	}
 }
 

@@ -70,18 +70,18 @@ const (
 
 // AgentStatus holds detailed agent status information.
 type AgentStatus struct {
-	Status      Status     `json:"status"`
-	Mode        Mode       `json:"mode"`
-	StartTime   time.Time  `json:"start_time"`
-	Uptime      string     `json:"uptime"`
-	Version     string     `json:"version"`
-	NodeName    string     `json:"node_name"`
-	Containers  int        `json:"containers_tracked"`
-	RulesLoaded int        `json:"rules_loaded"`
-	EventsTotal uint64     `json:"events_total"`
-	AlertsTotal uint64     `json:"alerts_total"`
+	Status       Status    `json:"status"`
+	Mode         Mode      `json:"mode"`
+	StartTime    time.Time `json:"start_time"`
+	Uptime       string    `json:"uptime"`
+	Version      string    `json:"version"`
+	NodeName     string    `json:"node_name"`
+	Containers   int       `json:"containers_tracked"`
+	RulesLoaded  int       `json:"rules_loaded"`
+	EventsTotal  uint64    `json:"events_total"`
+	AlertsTotal  uint64    `json:"alerts_total"`
 	EnforceTotal uint64    `json:"enforcement_total"`
-	EBPFStatus  string     `json:"ebpf_status"`
+	EBPFStatus   string    `json:"ebpf_status"`
 }
 
 // ── Agent ─────────────────────────────────────────────────────────────
@@ -94,24 +94,24 @@ type Agent struct {
 	startTime time.Time
 
 	// Core components
-	loader      *ebpf.Loader
-	pipeline    *pipeline.Pipeline
-	ruleEngine  *rules.Engine
-	enricher    *enrichment.Manager
-	alertEmit   *output.AlertEmitter
-	metrics     *output.MetricsExporter
+	loader     *ebpf.Loader
+	pipeline   *pipeline.Pipeline
+	ruleEngine *rules.Engine
+	enricher   *enrichment.Manager
+	alertEmit  *output.AlertEmitter
+	metrics    *output.MetricsExporter
 
 	// Intelligence components (Phase 3)
-	tcLoader     *ebpf.TCLoader
-	netEnforcer  *enforcement.NetworkEnforcer
-	correlator   *correlate.Correlator
-	aiConnector  *ai.AIConnector
-	grpcClient   *proto.SecurityScarletAIClient
+	tcLoader    *ebpf.TCLoader
+	netEnforcer *enforcement.NetworkEnforcer
+	correlator  *correlate.Correlator
+	aiConnector *ai.AIConnector
+	grpcClient  *proto.SecurityScarletAIClient
 
 	// Counters
-	eventsTotal    uint64
-	alertsTotal    uint64
-	enforceTotal   uint64
+	eventsTotal  uint64
+	alertsTotal  uint64
+	enforceTotal uint64
 
 	mu sync.RWMutex
 }
@@ -223,11 +223,11 @@ func (a *Agent) initComponents(ctx context.Context) error {
 	// 3. Initialize enrichment manager
 	log.Printf("[agent] Initializing container enrichment (CRI: %s)", a.config.Enrichment.CRIEndpoint)
 	a.enricher, err = enrichment.NewManager(enrichment.ManagerConfig{
-		CRIEndpoint:   a.config.Enrichment.CRIEndpoint,
-		K8sNodeName:   a.config.Agent.K8sNodeName,
-		PIDCacheSize:  a.config.Enrichment.PIDCacheSize,
-		PIDCacheTTL:   time.Duration(a.config.Enrichment.PIDCacheTTL) * time.Second,
-		ProcFSPath:    a.config.Agent.ProcFSPath,
+		CRIEndpoint:  a.config.Enrichment.CRIEndpoint,
+		K8sNodeName:  a.config.Agent.K8sNodeName,
+		PIDCacheSize: a.config.Enrichment.PIDCacheSize,
+		PIDCacheTTL:  time.Duration(a.config.Enrichment.PIDCacheTTL) * time.Second,
+		ProcFSPath:   a.config.Agent.ProcFSPath,
 	})
 	if err != nil {
 		log.Printf("[agent] Warning: enrichment initialization failed: %v (proceeding with limited enrichment)", err)

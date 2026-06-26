@@ -15,12 +15,12 @@
 //
 // The gRPC service definition (from SRD Section 11.5):
 //
-//   service SecurityScarletAI {
-//     rpc AnalyzeEvents(stream SecurityEvent) returns (stream AnalysisResult);
-//     rpc GetProfile(ProfileRequest) returns (BehavioralProfile);
-//     rpc TriageAlert(Alert) returns (TriageResult);
-//     rpc SuggestRule(IncidentContext) returns (RuleSuggestion);
-//   }
+//	service SecurityScarletAI {
+//	  rpc AnalyzeEvents(stream SecurityEvent) returns (stream AnalysisResult);
+//	  rpc GetProfile(ProfileRequest) returns (BehavioralProfile);
+//	  rpc TriageAlert(Alert) returns (TriageResult);
+//	  rpc SuggestRule(IncidentContext) returns (RuleSuggestion);
+//	}
 //
 // The connector is a stub for Phase 3 — the gRPC dependency
 // (google.golang.org/grpc) will be added when full integration is ready.
@@ -219,26 +219,26 @@ type AIConnector struct {
 	mu sync.RWMutex
 
 	// Configuration
-	endpoint string         // gRPC endpoint (e.g., "scarlet-ai:9443")
-	timeout  time.Duration  // Request timeout (default: 5s)
+	endpoint string        // gRPC endpoint (e.g., "scarlet-ai:9443")
+	timeout  time.Duration // Request timeout (default: 5s)
 
 	// Connection state
 	connected   bool
-	lastConnect  time.Time
-	lastError    error
-	retryCount   int
+	lastConnect time.Time
+	lastError   error
+	retryCount  int
 
 	// Feature flag
-	enabled      bool // AI features enabled/disabled
+	enabled bool // AI features enabled/disabled
 
 	// Stats
-	analysesRequested  uint64
-	analysesCompleted  uint64
-	analysesFailed     uint64
-	profilesRequested  uint64
-	triagesRequested   uint64
-	suggestionsMade    uint64
-	lastInferenceMS    int64
+	analysesRequested uint64
+	analysesCompleted uint64
+	analysesFailed    uint64
+	profilesRequested uint64
+	triagesRequested  uint64
+	suggestionsMade   uint64
+	lastInferenceMS   int64
 
 	// Lifecycle
 	running bool
@@ -366,8 +366,8 @@ func (a *AIConnector) AnalyzeEvent(ctx context.Context, event *AIEvent) (*Analys
 
 	// Stub: simulate inference with a small delay
 	result := &AnalysisResult{
-		AnomalyScore:      0.0,
-		Classification:    "unknown",
+		AnomalyScore:       0.0,
+		Classification:     "unknown",
 		Description:        "AI analysis stub invoked (gRPC not yet integrated)",
 		EnforceRecommended: false,
 		Confidence:         0.0,
@@ -392,9 +392,9 @@ func (a *AIConnector) GetProfile(ctx context.Context, req *ProfileRequest) (*Beh
 
 	if !a.IsEnabled() || !a.IsConnected() {
 		return &BehavioralProfile{
-			Image:         req.Image,
+			Image:          req.Image,
 			BaselineEvents: 0,
-			Confidence:    0.0,
+			Confidence:     0.0,
 		}, nil
 	}
 
@@ -420,9 +420,9 @@ func (a *AIConnector) TriageAlertGRPC(ctx context.Context, alert RuleIDAlert) (*
 	if !a.IsEnabled() || !a.IsConnected() {
 		return &TriageResult{
 			FalsePositiveScore: 0.5, // neutral
-			Priority:          alert.Priority,
-			Confidence:       0.0,
-			Reasoning:        "ai_disabled_or_disconnected",
+			Priority:           alert.Priority,
+			Confidence:         0.0,
+			Reasoning:          "ai_disabled_or_disconnected",
 		}, nil
 	}
 
@@ -432,9 +432,9 @@ func (a *AIConnector) TriageAlertGRPC(ctx context.Context, alert RuleIDAlert) (*
 
 	return &TriageResult{
 		FalsePositiveScore: 0.5,
-		Priority:          alert.Priority,
-		Confidence:        0.0,
-		Reasoning:        "AI triage stub (gRPC not yet integrated)",
+		Priority:           alert.Priority,
+		Confidence:         0.0,
+		Reasoning:          "AI triage stub (gRPC not yet integrated)",
 	}, nil
 }
 
@@ -473,11 +473,11 @@ func (a *AIConnector) SuggestRule(ctx context.Context, incident *IncidentContext
 	//   if err != nil { return nil, fmt.Errorf("SuggestRule failed: %w", err) }
 
 	return &RuleSuggestion{
-		RuleYAML:        "# AI-suggested rule placeholder (gRPC not yet integrated)",
-		Reasoning:       fmt.Sprintf("Based on %d incidents related to %s", len(incident.Events), incident.RuleID),
+		RuleYAML:         "# AI-suggested rule placeholder (gRPC not yet integrated)",
+		Reasoning:        fmt.Sprintf("Based on %d incidents related to %s", len(incident.Events), incident.RuleID),
 		BasedOnIncidents: len(incident.Events),
 		Confidence:       0.0,
-		Status:          "draft",
+		Status:           "draft",
 	}, nil
 }
 
@@ -490,8 +490,8 @@ type FeatureExtractor struct {
 	traceMu      sync.Mutex
 
 	// Configuration
-	ngramSize  int // n-gram window size (default: 5)
-	traceSize  int // max syscall trace length (default: 1000)
+	ngramSize int // n-gram window size (default: 5)
+	traceSize int // max syscall trace length (default: 1000)
 }
 
 // NewFeatureExtractor creates a new feature extractor.
@@ -577,10 +577,10 @@ type NgramBaseline struct {
 // and returns an anomaly score from 0.0 (normal) to 1.0 (highly anomalous).
 //
 // The algorithm uses a simplified Jensen-Shannon-like divergence:
-//   1. Normalize both distributions to probability distributions
-//   2. Compute per-n-gram absolute divergence from baseline
-//   3. Weight novel n-grams (not in baseline) more heavily
-//   4. Return the average divergence as the anomaly score
+//  1. Normalize both distributions to probability distributions
+//  2. Compute per-n-gram absolute divergence from baseline
+//  3. Weight novel n-grams (not in baseline) more heavily
+//  4. Return the average divergence as the anomaly score
 //
 // If no baseline is provided (nil), ScoreAnomaly uses simple heuristics:
 //   - Very low unique n-gram count → suspicious (repetitive behavior like mining)
@@ -833,8 +833,8 @@ type RuleIDAlert struct {
 // neutralResult returns a neutral analysis result for degraded mode.
 func (a *AIConnector) neutralResult(reason string) *AnalysisResult {
 	return &AnalysisResult{
-		AnomalyScore:      0.0,
-		Classification:    "unknown",
+		AnomalyScore:       0.0,
+		Classification:     "unknown",
 		Description:        fmt.Sprintf("AI analysis unavailable: %s", reason),
 		EnforceRecommended: false,
 		Confidence:         0.0,
@@ -847,17 +847,17 @@ func (a *AIConnector) neutralResult(reason string) *AnalysisResult {
 
 // AIStats holds statistics about the AI connector.
 type AIStats struct {
-	Connected          bool   `json:"connected"`
-	Enabled            bool   `json:"enabled"`
-	Endpoint           string `json:"endpoint"`
-	AnalysesRequested  uint64 `json:"analyses_requested"`
-	AnalysesCompleted  uint64 `json:"analyses_completed"`
-	AnalysesFailed     uint64 `json:"analyses_failed"`
-	ProfilesRequested  uint64 `json:"profiles_requested"`
-	TriagesRequested   uint64 `json:"triages_requested"`
-	SuggestionsMade    uint64 `json:"suggestions_made"`
-	LastInferenceMS    int64  `json:"last_inference_ms"`
-	LastConnectTime    time.Time `json:"last_connect_time,omitempty"`
+	Connected         bool      `json:"connected"`
+	Enabled           bool      `json:"enabled"`
+	Endpoint          string    `json:"endpoint"`
+	AnalysesRequested uint64    `json:"analyses_requested"`
+	AnalysesCompleted uint64    `json:"analyses_completed"`
+	AnalysesFailed    uint64    `json:"analyses_failed"`
+	ProfilesRequested uint64    `json:"profiles_requested"`
+	TriagesRequested  uint64    `json:"triages_requested"`
+	SuggestionsMade   uint64    `json:"suggestions_made"`
+	LastInferenceMS   int64     `json:"last_inference_ms"`
+	LastConnectTime   time.Time `json:"last_connect_time,omitempty"`
 }
 
 // Stats returns current AI connector statistics.

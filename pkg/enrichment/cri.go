@@ -40,19 +40,19 @@ type CRIRuntime string
 
 const (
 	CRIRuntimeContainerd CRIRuntime = "containerd"
-	CRIRuntimeCRIO        CRIRuntime = "cri-o"
-	CRIRuntimeDocker      CRIRuntime = "docker"
-	CRIRuntimeUnknown     CRIRuntime = "unknown"
+	CRIRuntimeCRIO       CRIRuntime = "cri-o"
+	CRIRuntimeDocker     CRIRuntime = "docker"
+	CRIRuntimeUnknown    CRIRuntime = "unknown"
 )
 
 // CRIContainerStatus mirrors the CRI container state.
 type CRIContainerStatus string
 
 const (
-	CRIContainerCreated   CRIContainerStatus = "created"
-	CRIContainerRunning   CRIContainerStatus = "running"
-	CRIContainerExited    CRIContainerStatus = "exited"
-	CRIContainerUnknown   CRIContainerStatus = "unknown"
+	CRIContainerCreated CRIContainerStatus = "created"
+	CRIContainerRunning CRIContainerStatus = "running"
+	CRIContainerExited  CRIContainerStatus = "exited"
+	CRIContainerUnknown CRIContainerStatus = "unknown"
 )
 
 // ── CRI Integration ────────────────────────────────────────────────────
@@ -66,8 +66,8 @@ type CRIIntegration struct {
 	connected bool
 
 	// Connection state
-	mu       sync.RWMutex
-	cancel   context.CancelFunc
+	mu     sync.RWMutex
+	cancel context.CancelFunc
 
 	// Manager reference for container registration/unregistration
 	manager *Manager
@@ -81,7 +81,7 @@ type CRIIntegration struct {
 	connectAttempts  int
 	lastListTime     time.Time
 	lastConnectTime  time.Time
-	lastError       error
+	lastError        error
 }
 
 // CRIEvent represents a container lifecycle event from the CRI runtime.
@@ -95,8 +95,8 @@ type CRIEvent struct {
 type CRIEventType string
 
 const (
-	CRIEventContainerStart CRIEventType = "container_start"
-	CRIEventContainerStop  CRIEventType = "container_stop"
+	CRIEventContainerStart  CRIEventType = "container_start"
+	CRIEventContainerStop   CRIEventType = "container_stop"
 	CRIEventContainerUpdate CRIEventType = "container_update"
 )
 
@@ -257,10 +257,10 @@ func (c *CRIIntegration) listContainersFromProc() ([]ContainerInfo, error) {
 		cgroupID := extractCgroupID(string(data))
 
 		info := ContainerInfo{
-			ID:      containerID,
-			Name:    fmt.Sprintf("container-%.12s", containerID),
-			Image:   "unknown", // will be filled by CRI or K8s metadata
-			Labels:  make(map[string]string),
+			ID:       containerID,
+			Name:     fmt.Sprintf("container-%.12s", containerID),
+			Image:    "unknown", // will be filled by CRI or K8s metadata
+			Labels:   make(map[string]string),
 			CgroupID: cgroupID,
 		}
 		if comm != "" {
@@ -428,14 +428,14 @@ func (c *CRIIntegration) IsConnected() bool {
 // Stats returns CRI integration statistics.
 type CRIStats struct {
 	Runtime          CRIRuntime `json:"runtime"`
-	Connected       bool       `json:"connected"`
-	Endpoint        string     `json:"endpoint"`
-	ContainersListed int       `json:"containers_listed"`
-	EventsProcessed int       `json:"events_processed"`
-	ConnectAttempts int       `json:"connect_attempts"`
-	LastConnectTime time.Time  `json:"last_connect_time"`
-	LastListTime    time.Time  `json:"last_list_time"`
-	LastError       string    `json:"last_error,omitempty"`
+	Connected        bool       `json:"connected"`
+	Endpoint         string     `json:"endpoint"`
+	ContainersListed int        `json:"containers_listed"`
+	EventsProcessed  int        `json:"events_processed"`
+	ConnectAttempts  int        `json:"connect_attempts"`
+	LastConnectTime  time.Time  `json:"last_connect_time"`
+	LastListTime     time.Time  `json:"last_list_time"`
+	LastError        string     `json:"last_error,omitempty"`
 }
 
 // Stats returns current CRI integration statistics.
@@ -445,13 +445,13 @@ func (c *CRIIntegration) Stats() CRIStats {
 
 	stats := CRIStats{
 		Runtime:          c.runtime,
-		Connected:       c.connected,
-		Endpoint:        c.endpoint,
+		Connected:        c.connected,
+		Endpoint:         c.endpoint,
 		ContainersListed: c.containersListed,
-		EventsProcessed: c.eventsProcessed,
-		ConnectAttempts: c.connectAttempts,
-		LastConnectTime: c.lastConnectTime,
-		LastListTime:    c.lastListTime,
+		EventsProcessed:  c.eventsProcessed,
+		ConnectAttempts:  c.connectAttempts,
+		LastConnectTime:  c.lastConnectTime,
+		LastListTime:     c.lastListTime,
 	}
 	if c.lastError != nil {
 		stats.LastError = c.lastError.Error()
@@ -508,4 +508,3 @@ func hashCgroupPath(path string) uint64 {
 	}
 	return h
 }
-

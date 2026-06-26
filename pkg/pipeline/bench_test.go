@@ -48,13 +48,13 @@ func createBenchPipeline(b *testing.B, eventCh chan *ebpf.ScarletEvent) *pipelin
 	correlator.Start()
 
 	p := pipeline.NewPipeline(pipeline.PipelineConfig{
-		EventChannel:    eventCh,
-		RuleEngine:      ruleEngine,
-		Enricher:        enricher,
-		AlertEmitter:    alertEmit,
-		Mode:            "audit",
-		Workers:         1,
-		AnomalyEnabled:  false, // Disable anomaly for raw throughput measurement
+		EventChannel:   eventCh,
+		RuleEngine:     ruleEngine,
+		Enricher:       enricher,
+		AlertEmitter:   alertEmit,
+		Mode:           "audit",
+		Workers:        1,
+		AnomalyEnabled: false,           // Disable anomaly for raw throughput measurement
 		CoalesceWindow: 5 * time.Minute, // Long window to avoid coalescing in bench
 	})
 
@@ -65,8 +65,8 @@ func createBenchPipeline(b *testing.B, eventCh chan *ebpf.ScarletEvent) *pipelin
 
 // benchAlertEmitter collects alerts for benchmark measurement.
 type benchAlertEmitter struct {
-	ch     chan *output.Alert
-	count  uint64
+	ch    chan *output.Alert
+	count uint64
 }
 
 func (e *benchAlertEmitter) Emit(alert *output.Alert) {

@@ -53,13 +53,13 @@ const (
 	DNSRcodeRefused  uint8 = 5
 
 	// DNS flags
-	DNSFlagQR     uint16 = 0x8000 // Query/Response bit
-	DNSFlagAA     uint16 = 0x0400 // Authoritative Answer
-	DNSFlagTC     uint16 = 0x0200 // Truncation
-	DNSFlagRD     uint16 = 0x0100 // Recursion Desired
-	DNSFlagRA     uint16 = 0x0080 // Recursion Available
-	DNSFlagAD     uint16 = 0x0020 // Authenticated Data
-	DNSFlagCD     uint16 = 0x0010 // Checking Disabled
+	DNSFlagQR uint16 = 0x8000 // Query/Response bit
+	DNSFlagAA uint16 = 0x0400 // Authoritative Answer
+	DNSFlagTC uint16 = 0x0200 // Truncation
+	DNSFlagRD uint16 = 0x0100 // Recursion Desired
+	DNSFlagRA uint16 = 0x0080 // Recursion Available
+	DNSFlagAD uint16 = 0x0020 // Authenticated Data
+	DNSFlagCD uint16 = 0x0010 // Checking Disabled
 )
 
 // ── DNS Types ─────────────────────────────────────────────────────────
@@ -583,12 +583,12 @@ func isKnownMiningPoolDomain(name string) bool {
 func isKnownMalwareC2Domain(name string) bool {
 	// These are pattern-based heuristics, not an exhaustive blocklist
 	c2Patterns := []string{
-		".onion.",       // Tor hidden services (suspicious in container context)
-		".bit.",         // Namecoin domains
-		".tk.",          // Free TLD often abused
-		".ml.",          // Free TLD often abused
-		".ga.",          // Free TLD often abused
-		".cf.",          // Free TLD often abused
+		".onion.", // Tor hidden services (suspicious in container context)
+		".bit.",   // Namecoin domains
+		".tk.",    // Free TLD often abused
+		".ml.",    // Free TLD often abused
+		".ga.",    // Free TLD often abused
+		".cf.",    // Free TLD often abused
 	}
 
 	lower := strings.ToLower(name)
@@ -599,8 +599,6 @@ func isKnownMalwareC2Domain(name string) bool {
 	}
 	return false
 }
-
-
 
 // ── DNS Type Name Helpers ──────────────────────────────────────────────
 

@@ -158,7 +158,7 @@ func TestRuleSelector_EmptySelectorDefaultsToAll(t *testing.T) {
 		Kind:       "ScarletRuntimePolicy",
 		Metadata:   crd.CRDObjectMeta{Name: "empty-selector"},
 		Spec: crd.ScarletRuntimePolicySpec{
-			Mode: "audit", // must be valid
+			Mode:         "audit", // must be valid
 			RuleSelector: crd.RuleSelector{
 				// All fields empty — should default to All=true
 			},
@@ -893,11 +893,11 @@ func TestParseIP_Invalid(t *testing.T) {
 
 func TestCRDObjectMeta(t *testing.T) {
 	meta := crd.CRDObjectMeta{
-		Name:              "test-policy",
-		Namespace:         "security-scarlet",
-		Labels:           map[string]string{"app": "scarlet"},
-		Annotations:      map[string]string{"note": "test"},
-		ResourceVersion:   "12345",
+		Name:            "test-policy",
+		Namespace:       "security-scarlet",
+		Labels:          map[string]string{"app": "scarlet"},
+		Annotations:     map[string]string{"note": "test"},
+		ResourceVersion: "12345",
 	}
 
 	if meta.Name != "test-policy" {

@@ -269,13 +269,13 @@ func TestLoader_FilterIntegration(t *testing.T) {
 	filter.SetCategoryFilter([]uint8{ebpf.CatNetwork})
 
 	networkEvent := &ebpf.ScarletEvent{
-		PID:      100,
-		Category: ebpf.CatNetwork,
+		PID:       100,
+		Category:  ebpf.CatNetwork,
 		EventType: ebpf.EvtNetConnect,
 	}
 	processEvent := &ebpf.ScarletEvent{
-		PID:      100,
-		Category: ebpf.CatProcess,
+		PID:       100,
+		Category:  ebpf.CatProcess,
 		EventType: ebpf.EvtExec,
 	}
 

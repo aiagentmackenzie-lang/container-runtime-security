@@ -71,8 +71,8 @@ type PipelineConfig struct {
 	MetricsExporter *output.MetricsExporter
 	NetworkEnforcer *enforcement.NetworkEnforcer // TC-based network blocker
 	Correlator      *correlate.Correlator        // Multi-signal correlation engine
-	AIConnector     AIAlertTrier                // AI-powered alert triage
-	Mode            string // audit, enforce, simulate
+	AIConnector     AIAlertTrier                 // AI-powered alert triage
+	Mode            string                       // audit, enforce, simulate
 
 	// Anomaly detection
 	AnomalyThreshold float64 // Minimum score to emit anomaly-only alert (default: 0.8)
@@ -89,12 +89,12 @@ type PipelineConfig struct {
 	// fpScore >= SuppressThreshold → suppress the alert entirely
 	// fpScore >= DowngradeThreshold (non-enforce) → downgrade priority
 	// fpScore >= AdjustThreshold → adjust priority but don't suppress
-	TriageSuppressThreshold   float64 // Default: 0.9
-	TriageDowngradeThreshold  float64 // Default: 0.7
-	TriageAdjustThreshold     float64 // Default: 0.5
+	TriageSuppressThreshold  float64 // Default: 0.9
+	TriageDowngradeThreshold float64 // Default: 0.7
+	TriageAdjustThreshold    float64 // Default: 0.5
 
 	// Baseline learning mode
-	LearningMode        bool // Enable automatic baseline learning (default: true)
+	LearningMode         bool // Enable automatic baseline learning (default: true)
 	MinEventsForBaseline int  // Minimum events before auto-building baseline (default: 100)
 
 	// Tuning
@@ -110,22 +110,22 @@ type PipelineConfig struct {
 // evaluates them against the rule engine, and routes decisions through
 // the response actor.
 type Pipeline struct {
-	config    PipelineConfig
-	mode      string
-	eventCh   <-chan *ebpf.ScarletEvent
+	config  PipelineConfig
+	mode    string
+	eventCh <-chan *ebpf.ScarletEvent
 
 	// Components
-	ruleEngine     *rules.Engine
-	enricher       *enrichment.Manager
-	alertEmit      AlertEmitter
-	metrics        *output.MetricsExporter
-	coalescer      *Coalescer
-	response       *ResponseActor
-	netEnforcer    *enforcement.NetworkEnforcer // TC-based network enforcer
-	correlator     *correlate.Correlator         // Multi-signal correlation engine
-	aiTrier       AIAlertTrier                  // AI-powered alert triage
-	aiSuggester   AIRuleSuggester               // AI-powered rule suggestions
-	suggestionMinConfidence float64             // Minimum confidence to log a suggestion
+	ruleEngine              *rules.Engine
+	enricher                *enrichment.Manager
+	alertEmit               AlertEmitter
+	metrics                 *output.MetricsExporter
+	coalescer               *Coalescer
+	response                *ResponseActor
+	netEnforcer             *enforcement.NetworkEnforcer // TC-based network enforcer
+	correlator              *correlate.Correlator        // Multi-signal correlation engine
+	aiTrier                 AIAlertTrier                 // AI-powered alert triage
+	aiSuggester             AIRuleSuggester              // AI-powered rule suggestions
+	suggestionMinConfidence float64                      // Minimum confidence to log a suggestion
 
 	// AI triage thresholds
 	triageSuppressThreshold  float64 // fpScore >= this → suppress (default: 0.9)
@@ -133,14 +133,14 @@ type Pipeline struct {
 	triageAdjustThreshold    float64 // fpScore >= this → adjust (default: 0.5)
 
 	// Baseline learning mode
-	learningMode         bool // Auto-build baselines after enough events (default: true)
-	minEventsForBaseline int  // Minimum events before auto-building (default: 100)
+	learningMode         bool           // Auto-build baselines after enough events (default: true)
+	minEventsForBaseline int            // Minimum events before auto-building (default: 100)
 	eventCounts          map[string]int // container_id → processed event count for learning
-	learningMu           sync.Mutex      // protects eventCounts and baseline learning
+	learningMu           sync.Mutex     // protects eventCounts and baseline learning
 
 	// Per-container anomaly scoring
 	extractors       map[string]*ai.FeatureExtractor // container_id → feature extractor
-	baselines        map[string]*ai.NgramBaseline     // container_image → baseline
+	baselines        map[string]*ai.NgramBaseline    // container_image → baseline
 	anomalyMu        sync.RWMutex
 	anomalyThreshold float64
 	anomalyEnabled   bool
@@ -204,30 +204,30 @@ func NewPipeline(cfg PipelineConfig) *Pipeline {
 	}
 
 	return &Pipeline{
-		config:           cfg,
-		mode:             cfg.Mode,
-		eventCh:          cfg.EventChannel,
-		ruleEngine:       cfg.RuleEngine,
-		enricher:         cfg.Enricher,
-		alertEmit:        cfg.AlertEmitter,
-		metrics:          cfg.MetricsExporter,
-		coalescer:        NewCoalescer(cfg.CoalesceWindow),
-		response:         NewResponseActor(cfg.Mode),
-		netEnforcer:      cfg.NetworkEnforcer,
-		correlator:       cfg.Correlator,
-		extractors:        make(map[string]*ai.FeatureExtractor),
-		baselines:         make(map[string]*ai.NgramBaseline),
-		anomalyThreshold:  anomalyThreshold,
-		anomalyEnabled:    anomalyEnabled,
-		suggestionMinConfidence: suggestionMinConfidence,
-		aiSuggester:       cfg.AIRuleSuggester,
+		config:                   cfg,
+		mode:                     cfg.Mode,
+		eventCh:                  cfg.EventChannel,
+		ruleEngine:               cfg.RuleEngine,
+		enricher:                 cfg.Enricher,
+		alertEmit:                cfg.AlertEmitter,
+		metrics:                  cfg.MetricsExporter,
+		coalescer:                NewCoalescer(cfg.CoalesceWindow),
+		response:                 NewResponseActor(cfg.Mode),
+		netEnforcer:              cfg.NetworkEnforcer,
+		correlator:               cfg.Correlator,
+		extractors:               make(map[string]*ai.FeatureExtractor),
+		baselines:                make(map[string]*ai.NgramBaseline),
+		anomalyThreshold:         anomalyThreshold,
+		anomalyEnabled:           anomalyEnabled,
+		suggestionMinConfidence:  suggestionMinConfidence,
+		aiSuggester:              cfg.AIRuleSuggester,
 		triageSuppressThreshold:  triageSuppressThreshold,
 		triageDowngradeThreshold: triageDowngradeThreshold,
 		triageAdjustThreshold:    triageAdjustThreshold,
-		learningMode:         learningMode,
-		minEventsForBaseline: minEventsForBaseline,
-		eventCounts:          make(map[string]int),
-		stopCh:           make(chan struct{}),
+		learningMode:             learningMode,
+		minEventsForBaseline:     minEventsForBaseline,
+		eventCounts:              make(map[string]int),
+		stopCh:                   make(chan struct{}),
 	}
 }
 
@@ -460,12 +460,12 @@ func (p *Pipeline) emitAnomalyAlert(event *EnrichedEvent) {
 	}
 
 	alert := &output.Alert{
-		Timestamp:      time.Now(),
-		RuleID:         "ANOMALY",
-		RuleName:       "Anomaly Detection — N-gram Score Exceeded Threshold",
-		Priority:       priority,
-		Action:         output.ActionAlert,
-		Output:         fmt.Sprintf("Anomaly score %.2f exceeded threshold %.2f for container %s (image=%s comm=%s pid=%d)",
+		Timestamp: time.Now(),
+		RuleID:    "ANOMALY",
+		RuleName:  "Anomaly Detection — N-gram Score Exceeded Threshold",
+		Priority:  priority,
+		Action:    output.ActionAlert,
+		Output: fmt.Sprintf("Anomaly score %.2f exceeded threshold %.2f for container %s (image=%s comm=%s pid=%d)",
 			event.AnomalyScore, p.anomalyThreshold, event.ContainerID,
 			event.ContainerImage, raw.CommString(), raw.PID),
 		AnomalyScore:   event.AnomalyScore,
@@ -707,34 +707,34 @@ var CorrelationSignalNames = map[string]string{
 
 	// Network outbound → "net_outbound" signal
 	"R009": "minerpool_connection", // mining pool
-	"R027": "net_outbound",          // C2 port
-	"R019": "net_outbound",          // cloud metadata
-	"R026": "net_outbound",          // rogue listener
+	"R027": "net_outbound",         // C2 port
+	"R019": "net_outbound",         // cloud metadata
+	"R026": "net_outbound",         // rogue listener
 
 	// Behavioral cryptojacking signals
-	"R008": "miner_procs",         // known miner binary
-	"R010": "miner_procs",         // stratum protocol
-	"R011": "high_cpu",            // behavioral CPU+net
+	"R008": "miner_procs", // known miner binary
+	"R010": "miner_procs", // stratum protocol
+	"R011": "high_cpu",    // behavioral CPU+net
 
 	// Privilege / credential signals
 	"R021": "setuid_transition",   // SetUID
 	"R022": "suid_set",            // SUID/SGID bit
-	"R018": "sensitive_file_read",  // sensitive file
-	"R020": "sensitive_file_read",  // K8s SA token
+	"R018": "sensitive_file_read", // sensitive file
+	"R020": "sensitive_file_read", // K8s SA token
 
 	// Escape signals
-	"R001": "namespace_join",       // setns
-	"R002": "unshare",             // unshare
-	"R003": "cgroup_mount",        // cgroup mount
-	}
+	"R001": "namespace_join", // setns
+	"R002": "unshare",        // unshare
+	"R003": "cgroup_mount",   // cgroup mount
+}
 
 // NetworkBlockingRuleIDs maps rule IDs that trigger TC network enforcement
 // to their reason strings. These rules block network traffic in addition
 // to their normal alert/enforce action.
 var NetworkBlockingRuleIDs = map[string]string{
-	"R009": "mining_pool_connection",  // Mining pool connection → block destination
-	"R027": "c2_port_connection",      // C2 port connection → block destination
-	"R019": "cloud_metadata_ssrf",     // Cloud metadata SSRF → block 169.254.169.254
+	"R009": "mining_pool_connection", // Mining pool connection → block destination
+	"R027": "c2_port_connection",     // C2 port connection → block destination
+	"R019": "cloud_metadata_ssrf",    // Cloud metadata SSRF → block 169.254.169.254
 }
 
 // EventsProcessed returns the total number of events processed.
@@ -872,7 +872,7 @@ func (p *Pipeline) enrichEvent(event *ebpf.ScarletEvent) *EnrichedEvent {
 // toRuleView converts an EnrichedEvent to the view expected by the rule engine.
 func (p *Pipeline) toRuleView(event *EnrichedEvent) *rules.EnrichedEventForRule {
 	return &rules.EnrichedEventForRule{
-		Event:              event.RawEvent,
+		Event:               event.RawEvent,
 		ContainerID:         event.ContainerID,
 		ContainerName:       event.ContainerName,
 		ContainerImage:      event.ContainerImage,
@@ -1442,9 +1442,9 @@ type EnrichedEvent struct {
 	RawEvent *ebpf.ScarletEvent
 
 	// Container metadata
-	ContainerID        string
-	ContainerName      string
-	ContainerImage     string
+	ContainerID         string
+	ContainerName       string
+	ContainerImage      string
 	ContainerAttributed bool // true if container_id was successfully resolved
 
 	// Kubernetes metadata
@@ -1456,5 +1456,5 @@ type EnrichedEvent struct {
 	NodeName       string
 
 	// Anomaly scoring state
-	AnomalyScore  float64 // 0.0 = normal, 1.0 = highly anomalous
+	AnomalyScore float64 // 0.0 = normal, 1.0 = highly anomalous
 }

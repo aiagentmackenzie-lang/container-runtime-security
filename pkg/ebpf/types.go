@@ -38,9 +38,9 @@ const (
 	EvtExit uint8 = 3
 
 	// File events
-	EvtFileOpen  uint8 = 10
+	EvtFileOpen   uint8 = 10
 	EvtFileUnlink uint8 = 11
-	EvtFileMemfd uint8 = 12
+	EvtFileMemfd  uint8 = 12
 	EvtFileRename uint8 = 13
 
 	// Network events
@@ -50,47 +50,47 @@ const (
 	EvtNetUDP     uint8 = 23
 
 	// Escape events
-	EvtSetns       uint8 = 30
-	EvtUnshare     uint8 = 31
-	EvtMount       uint8 = 32
-	EvtPtrace      uint8 = 33
-	EvtModuleLoad  uint8 = 34
-	EvtBpfLoad     uint8 = 35
+	EvtSetns      uint8 = 30
+	EvtUnshare    uint8 = 31
+	EvtMount      uint8 = 32
+	EvtPtrace     uint8 = 33
+	EvtModuleLoad uint8 = 34
+	EvtBpfLoad    uint8 = 35
 
 	// Privilege events
-	EvtSetuid      uint8 = 40
-	EvtSetresuid   uint8 = 41
-	EvtCapset      uint8 = 42
-	EvtChmod       uint8 = 43
+	EvtSetuid    uint8 = 40
+	EvtSetresuid uint8 = 41
+	EvtCapset    uint8 = 42
+	EvtChmod     uint8 = 43
 
 	// Credential events
-	EvtCredAccess  uint8 = 50
+	EvtCredAccess uint8 = 50
 )
 
 // EventTypeName maps event type byte to human-readable name.
 var EventTypeName = map[uint8]string{
-	EvtExec:        "EXEC",
-	EvtFork:        "FORK",
-	EvtExit:        "EXIT",
-	EvtFileOpen:    "FILE_OPEN",
-	EvtFileUnlink:  "FILE_UNLINK",
-	EvtFileMemfd:   "FILE_MEMFD",
-	EvtFileRename:  "FILE_RENAME",
-	EvtNetConnect:  "NET_CONNECT",
-	EvtNetListen:   "NET_LISTEN",
-	EvtNetState:    "NET_STATE",
-	EvtNetUDP:      "NET_UDP",
-	EvtSetns:       "SETNS",
-	EvtUnshare:     "UNSHARE",
-	EvtMount:       "MOUNT",
-	EvtPtrace:      "PTRACE",
-	EvtModuleLoad:  "MODULE_LOAD",
-	EvtBpfLoad:     "BPF_LOAD",
-	EvtSetuid:      "SETUID",
-	EvtSetresuid:   "SETRESUID",
-	EvtCapset:      "CAPSET",
-	EvtChmod:       "CHMOD",
-	EvtCredAccess:  "CRED_ACCESS",
+	EvtExec:       "EXEC",
+	EvtFork:       "FORK",
+	EvtExit:       "EXIT",
+	EvtFileOpen:   "FILE_OPEN",
+	EvtFileUnlink: "FILE_UNLINK",
+	EvtFileMemfd:  "FILE_MEMFD",
+	EvtFileRename: "FILE_RENAME",
+	EvtNetConnect: "NET_CONNECT",
+	EvtNetListen:  "NET_LISTEN",
+	EvtNetState:   "NET_STATE",
+	EvtNetUDP:     "NET_UDP",
+	EvtSetns:      "SETNS",
+	EvtUnshare:    "UNSHARE",
+	EvtMount:      "MOUNT",
+	EvtPtrace:     "PTRACE",
+	EvtModuleLoad: "MODULE_LOAD",
+	EvtBpfLoad:    "BPF_LOAD",
+	EvtSetuid:     "SETUID",
+	EvtSetresuid:  "SETRESUID",
+	EvtCapset:     "CAPSET",
+	EvtChmod:      "CHMOD",
+	EvtCredAccess: "CRED_ACCESS",
 }
 
 // ── Struct sizes (must match C header) ────────────────────────────────
@@ -130,10 +130,10 @@ type ScarletEvent struct {
 // EventPayload holds the category-specific data. All sub-structs are
 // present; the consumer must check Category to know which is valid.
 type EventPayload struct {
-	Process  ProcessPayload
-	File     FilePayload
-	Network  NetworkPayload
-	Escape   EscapePayload
+	Process   ProcessPayload
+	File      FilePayload
+	Network   NetworkPayload
+	Escape    EscapePayload
 	Privilege PrivilegePayload
 }
 
@@ -163,18 +163,18 @@ type NetworkPayload struct {
 
 // EscapePayload holds data for SCARLET_CAT_ESCAPE events.
 type EscapePayload struct {
-	NSType    uint32
-	TargetNS  [NSCount]uint32
-	NSCount   uint8
-	_         [3]byte // padding
+	NSType   uint32
+	TargetNS [NSCount]uint32
+	NSCount  uint8
+	_        [3]byte // padding
 }
 
 // PrivilegePayload holds data for SCARLET_CAT_PRIVILEGE events.
 type PrivilegePayload struct {
-	OldUID    uint32
-	NewUID    uint32
+	OldUID     uint32
+	NewUID     uint32
 	Capability uint32
-	ModeFlags uint32
+	ModeFlags  uint32
 }
 
 // ── Helper methods ────────────────────────────────────────────────────
@@ -511,18 +511,18 @@ func SizeofScarletEvent() uintptr {
 //       - Entry: 1-byte type (0=hostname) + 2-byte length + hostname
 
 const (
-	TLSContentTypeHandshake = 22
+	TLSContentTypeHandshake     = 22
 	TLSHandshakeTypeClientHello = 1
-	TLSExtensionServerName = 0
-	TLSExtensionSNIHostName = 0
+	TLSExtensionServerName      = 0
+	TLSExtensionSNIHostName     = 0
 )
 
 // TLSSNIResult holds the result of TLS SNI extraction.
 type TLSSNIResult struct {
-	SNI           string    // Extracted Server Name Indication
-	TLSVersion    uint16    // TLS version from the ClientHello
-	HasSNI        bool      // Whether SNI was found
-	IsSuspicious  bool      // Whether the SNI is considered suspicious
+	SNI               string   // Extracted Server Name Indication
+	TLSVersion        uint16   // TLS version from the ClientHello
+	HasSNI            bool     // Whether SNI was found
+	IsSuspicious      bool     // Whether the SNI is considered suspicious
 	SuspiciousReasons []string // Reasons the SNI is suspicious
 }
 
@@ -652,20 +652,20 @@ func ExtractTLSClientHelloSNI(payload []byte) *TLSSNIResult {
 		}
 
 		if extType == TLSExtensionServerName {
-			 sni := parseSNIExtension(payload[offset : offset+extDataLen])
-			 if sni != "" {
-				 result.SNI = sni
-				 result.HasSNI = true
+			sni := parseSNIExtension(payload[offset : offset+extDataLen])
+			if sni != "" {
+				result.SNI = sni
+				result.HasSNI = true
 
 				// Check for suspicious SNI
-				 reasons := CheckSuspiciousSNI(sni)
-				 if len(reasons) > 0 {
-					 result.IsSuspicious = true
-					 result.SuspiciousReasons = reasons
-				 }
+				reasons := CheckSuspiciousSNI(sni)
+				if len(reasons) > 0 {
+					result.IsSuspicious = true
+					result.SuspiciousReasons = reasons
+				}
 
-				 return result
-			 }
+				return result
+			}
 		}
 
 		offset += extDataLen
@@ -733,7 +733,7 @@ var SNISuspiciousPatterns = []struct {
 		Check:       isSNILongRandom,
 	},
 	{
-	Name:        "tor_hidden_service",
+		Name:        "tor_hidden_service",
 		Description: "SNI appears to be a Tor .onion address",
 		Check:       isSNITorHiddenService,
 	},

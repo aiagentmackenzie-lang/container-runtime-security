@@ -13,23 +13,23 @@ import (
 
 // CoalesceKey uniquely identifies a group of events that can be coalesced.
 type CoalesceKey struct {
-	RuleID        string
-	ContainerID   string
-	ProcessName   string
+	RuleID      string
+	ContainerID string
+	ProcessName string
 }
 
 // CoalesceEntry tracks a group of coalesced events.
 type CoalesceEntry struct {
-	Key       CoalesceKey
-	First     *output.Alert
-	Count     uint64
-	LastSeen  time.Time
+	Key      CoalesceKey
+	First    *output.Alert
+	Count    uint64
+	LastSeen time.Time
 }
 
 // Coalescer merges duplicate alerts within a time window.
 type Coalescer struct {
-	window time.Duration
-	mu     sync.RWMutex
+	window  time.Duration
+	mu      sync.RWMutex
 	entries map[CoalesceKey]*CoalesceEntry
 }
 

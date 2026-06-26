@@ -264,13 +264,13 @@ func TestAgent_MultipleStartStop(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		p := pipeline.NewPipeline(pipeline.PipelineConfig{
-			EventChannel:    eventCh,
-			RuleEngine:      ruleEngine,
-			Enricher:        enricher,
-			AlertEmitter:    alertEmit,
-			Mode:            "audit",
-			Workers:         1,
-			AnomalyEnabled:  false,
+			EventChannel:   eventCh,
+			RuleEngine:     ruleEngine,
+			Enricher:       enricher,
+			AlertEmitter:   alertEmit,
+			Mode:           "audit",
+			Workers:        1,
+			AnomalyEnabled: false,
 			CoalesceWindow: 1 * time.Second,
 		})
 
@@ -319,14 +319,14 @@ func TestAgent_ConcurrentEvents(t *testing.T) {
 	}
 
 	p := pipeline.NewPipeline(pipeline.PipelineConfig{
-		EventChannel:    eventCh,
-		RuleEngine:      ruleEngine,
-		Enricher:        enricher,
-		AlertEmitter:    alertEmit,
-		Correlator:      correlator,
-		Mode:            "audit",
-		Workers:         4,
-		AnomalyEnabled:  false,
+		EventChannel:   eventCh,
+		RuleEngine:     ruleEngine,
+		Enricher:       enricher,
+		AlertEmitter:   alertEmit,
+		Correlator:     correlator,
+		Mode:           "audit",
+		Workers:        4,
+		AnomalyEnabled: false,
 		CoalesceWindow: 5 * time.Minute,
 	})
 
@@ -409,13 +409,13 @@ func TestAgent_RingBufferFilterWithPipeline(t *testing.T) {
 	loader.Filter().SetCategoryFilter([]uint8{ebpf.CatNetwork, ebpf.CatEscape})
 
 	p := pipeline.NewPipeline(pipeline.PipelineConfig{
-		EventChannel:    eventCh,
-		RuleEngine:      ruleEngine,
-		Enricher:        enricher,
-		AlertEmitter:    alertEmit,
-		Mode:            "audit",
-		Workers:         1,
-		AnomalyEnabled:  false,
+		EventChannel:   eventCh,
+		RuleEngine:     ruleEngine,
+		Enricher:       enricher,
+		AlertEmitter:   alertEmit,
+		Mode:           "audit",
+		Workers:        1,
+		AnomalyEnabled: false,
 		CoalesceWindow: 5 * time.Minute,
 	})
 

@@ -4,13 +4,13 @@
 //
 // Per SRD Section 8.2, rules can specify a `correlate` section:
 //
-//   rule: Reverse Shell — Shell with Outbound Network
-//     condition: net_outbound and container and shell_procs and fd.rport not in (80, 443)
-//     correlate:
-//       window: 5s
-//       signals: [shell_procs, net_outbound]
-//       logic: all         # all signals must match within window
-//       group_by: [proc.pid] # group events by PID
+//	rule: Reverse Shell — Shell with Outbound Network
+//	  condition: net_outbound and container and shell_procs and fd.rport not in (80, 443)
+//	  correlate:
+//	    window: 5s
+//	    signals: [shell_procs, net_outbound]
+//	    logic: all         # all signals must match within window
+//	    group_by: [proc.pid] # group events by PID
 //
 // The correlation engine maintains time-windowed state per (rule, group_by key)
 // and fires when all required signals appear within the window. This enables
@@ -38,13 +38,13 @@ import (
 // Signal represents a named event signal that can participate in correlation.
 // Signals are derived from rule conditions (e.g., "shell_procs", "net_outbound").
 type Signal struct {
-	Name      string    // Signal name (e.g., "shell_procs", "net_outbound")
-	Timestamp time.Time // When the signal was observed
-	PID       uint32    // Process ID that produced the signal
-	ContainerID string  // Container where the signal was observed
-	Namespace string    // Kubernetes namespace
-	RuleID    string    // Rule that produced this signal
-	Extra     map[string]string // Additional context (IP, port, path, etc.)
+	Name        string            // Signal name (e.g., "shell_procs", "net_outbound")
+	Timestamp   time.Time         // When the signal was observed
+	PID         uint32            // Process ID that produced the signal
+	ContainerID string            // Container where the signal was observed
+	Namespace   string            // Kubernetes namespace
+	RuleID      string            // Rule that produced this signal
+	Extra       map[string]string // Additional context (IP, port, path, etc.)
 }
 
 // ── Correlation Logic ──────────────────────────────────────────────────
@@ -184,7 +184,7 @@ type Correlator struct {
 	windows map[windowKey]*SignalWindow
 
 	// Configuration
-	maxWindows int           // Maximum number of active windows (prevent memory leak)
+	maxWindows    int           // Maximum number of active windows (prevent memory leak)
 	purgeInterval time.Duration // How often to purge expired windows
 
 	// Output channel for correlation results
@@ -211,11 +211,11 @@ type windowKey struct {
 // NewCorrelator creates a new correlation engine.
 func NewCorrelator() *Correlator {
 	return &Correlator{
-		rules:    make(map[string]*CorrelationSpec),
-		windows:  make(map[windowKey]*SignalWindow),
-		maxWindows: 10000, // prevent unbounded memory growth
+		rules:         make(map[string]*CorrelationSpec),
+		windows:       make(map[windowKey]*SignalWindow),
+		maxWindows:    10000, // prevent unbounded memory growth
 		purgeInterval: 30 * time.Second,
-		stopCh:   make(chan struct{}),
+		stopCh:        make(chan struct{}),
 	}
 }
 
@@ -525,59 +525,59 @@ func DefaultCorrelationRules() []*CorrelationSpec {
 	return []*CorrelationSpec{
 		// R014: Reverse Shell — Shell process with outbound network connection
 		{
-			RuleID:   "R014",
-			Window:   5 * time.Second,
-			Signals:  []string{"shell_procs", "net_outbound"},
-			Logic:    LogicAll,
-			GroupBy:  []string{"proc.pid"},
+			RuleID:  "R014",
+			Window:  5 * time.Second,
+			Signals: []string{"shell_procs", "net_outbound"},
+			Logic:   LogicAll,
+			GroupBy: []string{"proc.pid"},
 		},
 		// R011: Behavioral Cryptojacking — high CPU activity + mining pool connection
 		{
-			RuleID:   "R011",
-			Window:   30 * time.Second,
-			Signals:  []string{"high_cpu", "minerpool_connection"},
-			Logic:    LogicAll,
-			GroupBy:  []string{"container.id"},
+			RuleID:  "R011",
+			Window:  30 * time.Second,
+			Signals: []string{"high_cpu", "minerpool_connection"},
+			Logic:   LogicAll,
+			GroupBy: []string{"container.id"},
 		},
 		// Privilege Escalation Chain — setuid + sensitive file access
 		{
-			RuleID:   "R021-R018",
-			Window:   10 * time.Second,
-			Signals:  []string{"setuid_transition", "sensitive_file_read"},
-			Logic:    LogicAll,
-			GroupBy:  []string{"proc.pid"},
+			RuleID:  "R021-R018",
+			Window:  10 * time.Second,
+			Signals: []string{"setuid_transition", "sensitive_file_read"},
+			Logic:   LogicAll,
+			GroupBy: []string{"proc.pid"},
 		},
 		// Container Escape Chain — cgroup mount + namespace join
 		{
-			RuleID:   "R003-R001",
-			Window:   5 * time.Second,
-			Signals:  []string{"cgroup_mount", "namespace_join"},
-			Logic:    LogicAll,
-			GroupBy:  []string{"container.id"},
+			RuleID:  "R003-R001",
+			Window:  5 * time.Second,
+			Signals: []string{"cgroup_mount", "namespace_join"},
+			Logic:   LogicAll,
+			GroupBy: []string{"container.id"},
 		},
 		// Suspicious TLS SNI + mining pool connection — cryptojacking via TLS
 		{
-			RuleID:   "TLS-SNI-001",
-			Window:   30 * time.Second,
-			Signals:  []string{"tls_suspicious_sni", "minerpool_connection"},
-			Logic:    LogicAny,
-			GroupBy:  []string{"container.id"},
+			RuleID:  "TLS-SNI-001",
+			Window:  30 * time.Second,
+			Signals: []string{"tls_suspicious_sni", "minerpool_connection"},
+			Logic:   LogicAny,
+			GroupBy: []string{"container.id"},
 		},
 		// Suspicious DNS query + suspicious SNI — malware C2 detection
 		{
-			RuleID:   "DNS-SNI-001",
-			Window:   10 * time.Second,
-			Signals:  []string{"dns_suspicious_query", "tls_suspicious_sni"},
-			Logic:    LogicAny,
-			GroupBy:  []string{"container.id"},
+			RuleID:  "DNS-SNI-001",
+			Window:  10 * time.Second,
+			Signals: []string{"dns_suspicious_query", "tls_suspicious_sni"},
+			Logic:   LogicAny,
+			GroupBy: []string{"container.id"},
 		},
 		// Suspicious DNS query pattern — DGA or tunnel detection
 		{
-			RuleID:   "DNS-001",
-			Window:   60 * time.Second,
-			Signals:  []string{"dns_suspicious_query"},
-			Logic:    LogicAny,
-			GroupBy:  []string{"container.id"},
+			RuleID:  "DNS-001",
+			Window:  60 * time.Second,
+			Signals: []string{"dns_suspicious_query"},
+			Logic:   LogicAny,
+			GroupBy: []string{"container.id"},
 		},
 	}
 }

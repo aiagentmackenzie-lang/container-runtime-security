@@ -135,12 +135,12 @@ func (l *EnforcementAuditLog) SkippedEnforcements() int {
 
 // EnforcementSummary provides a point-in-time summary of enforcement activity.
 type EnforcementSummary struct {
-	Timestamp          time.Time    `json:"timestamp"`
-	TotalDecisions     int          `json:"total_decisions"`
-	SuccessfulKills    int          `json:"successful_kills"`
-	SkippedEnforcements int         `json:"skipped_enforcements"`
-	ByReason           map[string]int `json:"by_reason"`
-	ByRule             map[string]int `json:"by_rule"`
+	Timestamp           time.Time      `json:"timestamp"`
+	TotalDecisions      int            `json:"total_decisions"`
+	SuccessfulKills     int            `json:"successful_kills"`
+	SkippedEnforcements int            `json:"skipped_enforcements"`
+	ByReason            map[string]int `json:"by_reason"`
+	ByRule              map[string]int `json:"by_rule"`
 }
 
 // Summary returns a summary of all enforcement activity.
@@ -149,12 +149,12 @@ func (l *EnforcementAuditLog) Summary() EnforcementSummary {
 	defer l.mu.RUnlock()
 
 	summary := EnforcementSummary{
-		Timestamp:          time.Now(),
-		TotalDecisions:     len(l.entries),
-		SuccessfulKills:    0,
+		Timestamp:           time.Now(),
+		TotalDecisions:      len(l.entries),
+		SuccessfulKills:     0,
 		SkippedEnforcements: 0,
-		ByReason:           make(map[string]int),
-		ByRule:             make(map[string]int),
+		ByReason:            make(map[string]int),
+		ByRule:              make(map[string]int),
 	}
 
 	for _, entry := range l.entries {

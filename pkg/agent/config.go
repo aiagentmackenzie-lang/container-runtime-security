@@ -13,14 +13,14 @@ import (
 
 // Config is the top-level configuration for the SecurityScarlet Runtime agent.
 type Config struct {
-	Agent      AgentConfig      `json:"agent"`
-	Enrichment EnrichmentConfig `json:"enrichment"`
-	Rules      RulesConfig      `json:"rules"`
+	Agent       AgentConfig       `json:"agent"`
+	Enrichment  EnrichmentConfig  `json:"enrichment"`
+	Rules       RulesConfig       `json:"rules"`
 	Enforcement EnforcementConfig `json:"enforcement"`
-	Output     OutputConfig     `json:"output"`
-	AI         AIConfig         `json:"ai"`
-	Metrics    MetricsConfig    `json:"metrics"`
-	Webhook    WebhookConfig    `json:"webhook"`
+	Output      OutputConfig      `json:"output"`
+	AI          AIConfig          `json:"ai"`
+	Metrics     MetricsConfig     `json:"metrics"`
+	Webhook     WebhookConfig     `json:"webhook"`
 
 	// Internal fields (not from YAML)
 	Version string `json:"-"`
@@ -39,25 +39,25 @@ type AgentConfig struct {
 
 // EnrichmentConfig holds container enrichment settings.
 type EnrichmentConfig struct {
-	CRIEndpoint   string `json:"cri_endpoint"`
-	K8sNodeName   string `json:"k8s_node_name"`
-	PIDCacheSize  int    `json:"pid_cache_size"`
+	CRIEndpoint  string `json:"cri_endpoint"`
+	K8sNodeName  string `json:"k8s_node_name"`
+	PIDCacheSize int    `json:"pid_cache_size"`
 	PIDCacheTTL  int    `json:"pid_cache_ttl"` // seconds
-	ProcFSPath    string `json:"procfs_path"`
+	ProcFSPath   string `json:"procfs_path"`
 }
 
 // RulesConfig holds rule engine settings.
 type RulesConfig struct {
-	Paths         []string `json:"paths"`
-	ReloadOnChange bool    `json:"reload_on_change"`
+	Paths          []string `json:"paths"`
+	ReloadOnChange bool     `json:"reload_on_change"`
 }
 
 // EnforcementConfig holds enforcement policy settings.
 type EnforcementConfig struct {
 	ProtectedNamespaces []string `json:"protected_namespaces"`
-	MaxKillsPerPod     int      `json:"max_kills_per_pod"`
-	WindowSeconds      int      `json:"window_seconds"`
-	SimulateMinHours   int      `json:"simulate_minimum_hours"`
+	MaxKillsPerPod      int      `json:"max_kills_per_pod"`
+	WindowSeconds       int      `json:"window_seconds"`
+	SimulateMinHours    int      `json:"simulate_minimum_hours"`
 }
 
 // OutputConfig holds output destination settings.
@@ -95,16 +95,16 @@ type WebhookConfig struct {
 // WebhookSinkConfigRef is the agent-level representation of a webhook sink.
 // It mirrors the output.WebhookSinkConfig fields relevant to YAML config.
 type WebhookSinkConfigRef struct {
-	Type                 string            `json:"type"  yaml:"type"`
-	URL                  string            `json:"url"   yaml:"url"`
-	Headers              map[string]string `json:"headers,omitempty"             yaml:"headers,omitempty"`
-	RetryCount           int               `json:"retry_count,omitempty"        yaml:"retry_count,omitempty"`
-	Timeout              int               `json:"timeout,omitempty"             yaml:"timeout,omitempty"` // seconds
-	BatchSize            int               `json:"batch_size,omitempty"          yaml:"batch_size,omitempty"`
-	TLSInsecureSkipVerify bool             `json:"tls_insecure_skip_verify,omitempty" yaml:"tls_insecure_skip_verify,omitempty"`
-	Enabled              bool              `json:"enabled,omitempty"             yaml:"enabled,omitempty"`
-	PagerDutyRoutingKey  string            `json:"pagerduty_routing_key,omitempty" yaml:"pagerduty_routing_key,omitempty"`
-	SlackChannel         string            `json:"slack_channel,omitempty"       yaml:"slack_channel,omitempty"`
+	Type                  string            `json:"type"  yaml:"type"`
+	URL                   string            `json:"url"   yaml:"url"`
+	Headers               map[string]string `json:"headers,omitempty"             yaml:"headers,omitempty"`
+	RetryCount            int               `json:"retry_count,omitempty"        yaml:"retry_count,omitempty"`
+	Timeout               int               `json:"timeout,omitempty"             yaml:"timeout,omitempty"` // seconds
+	BatchSize             int               `json:"batch_size,omitempty"          yaml:"batch_size,omitempty"`
+	TLSInsecureSkipVerify bool              `json:"tls_insecure_skip_verify,omitempty" yaml:"tls_insecure_skip_verify,omitempty"`
+	Enabled               bool              `json:"enabled,omitempty"             yaml:"enabled,omitempty"`
+	PagerDutyRoutingKey   string            `json:"pagerduty_routing_key,omitempty" yaml:"pagerduty_routing_key,omitempty"`
+	SlackChannel          string            `json:"slack_channel,omitempty"       yaml:"slack_channel,omitempty"`
 	SlackUsername         string            `json:"slack_username,omitempty"      yaml:"slack_username,omitempty"`
 }
 
@@ -124,7 +124,7 @@ func DefaultConfig() *Config {
 			K8sNodeName:      nodeName,
 			BPFObjectDir:     "/opt/scarlet/bpf",
 			ProcFSPath:       "/host/proc",
-			SysFSPath:       "/sys/kernel/debug",
+			SysFSPath:        "/sys/kernel/debug",
 		},
 		Enrichment: EnrichmentConfig{
 			CRIEndpoint:  "/run/containerd/containerd.sock",
@@ -139,9 +139,9 @@ func DefaultConfig() *Config {
 		},
 		Enforcement: EnforcementConfig{
 			ProtectedNamespaces: []string{"kube-system", "kube-public"},
-			MaxKillsPerPod:       10,
-			WindowSeconds:        60,
-			SimulateMinHours:     48,
+			MaxKillsPerPod:      10,
+			WindowSeconds:       60,
+			SimulateMinHours:    48,
 		},
 		Output: OutputConfig{
 			AlertFile:      "/var/log/scarlet/alerts.jsonl",

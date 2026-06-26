@@ -135,11 +135,11 @@ func TestDisconnect_WhenNotConnected(t *testing.T) {
 
 func TestSecurityEvent_WithPayloads(t *testing.T) {
 	event := &proto.SecurityEvent{
-		PID:        1234,
-		PPID:       100,
-		Category:   1, // PROCESS
-		EventType:  1,
-		Comm:       "bash",
+		PID:       1234,
+		PPID:      100,
+		Category:  1, // PROCESS
+		EventType: 1,
+		Comm:      "bash",
 		ProcessPayload: &proto.ProcessPayload{
 			Filename: "/bin/bash",
 			Args:     "-i",
@@ -193,11 +193,11 @@ func TestAnalysisResult_Fields(t *testing.T) {
 
 func TestTriageResult_Fields(t *testing.T) {
 	result := &proto.TriageResult{
-		FalsePositiveScore: 0.92,
-		Priority:          "INFO",
-		Reasoning:         "Likely false positive from CI/CD pipeline",
+		FalsePositiveScore:  0.92,
+		Priority:            "INFO",
+		Reasoning:           "Likely false positive from CI/CD pipeline",
 		SuppressRecommended: true,
-		Confidence:        0.85,
+		Confidence:          0.85,
 	}
 
 	if result.FalsePositiveScore != 0.92 {
@@ -210,11 +210,11 @@ func TestTriageResult_Fields(t *testing.T) {
 
 func TestRuleSuggestion_Fields(t *testing.T) {
 	suggestion := &proto.RuleSuggestion{
-		RuleYAML:        "- rule: Test Rule\n  condition: test",
-		Reasoning:       "Based on 3 incidents",
+		RuleYAML:         "- rule: Test Rule\n  condition: test",
+		Reasoning:        "Based on 3 incidents",
 		BasedOnIncidents: 3,
 		Confidence:       0.7,
-		Status:          "draft",
+		Status:           "draft",
 	}
 
 	if suggestion.BasedOnIncidents != 3 {
@@ -273,12 +273,12 @@ func TestBehavioralProfile_WithSyscallProfile(t *testing.T) {
 		Image: "nginx:1.25",
 		SyscallProfile: &proto.SyscallProfile{
 			TopSyscalls: map[string]float64{
-				"read":     0.25,
-				"write":    0.15,
+				"read":       0.25,
+				"write":      0.15,
 				"epoll_wait": 0.20,
 			},
 			UniqueSyscallCount: 42,
-			NgramHashes:       []uint64{0x1234, 0x5678},
+			NgramHashes:        []uint64{0x1234, 0x5678},
 		},
 		BaselineEvents: 10000,
 		Confidence:     0.95,

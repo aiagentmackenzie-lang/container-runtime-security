@@ -20,8 +20,8 @@ func buildDNSQuery(name string, qtype uint16) []byte {
 
 	// Question section
 	question := encodeDNSName(name)
-	question = append(question, byte(qtype>>8), byte(qtype&0xFF))    // QTYPE
-	question = append(question, 0x00, 0x01)                           // QCLASS = IN
+	question = append(question, byte(qtype>>8), byte(qtype&0xFF)) // QTYPE
+	question = append(question, 0x00, 0x01)                       // QCLASS = IN
 
 	return append(header, question...)
 }
@@ -46,9 +46,9 @@ func buildDNSResponse(name string, qtype uint16, answer string) []byte {
 	// Answer section (using compression pointer for name)
 	answerSection := []byte{0xC0, 0x0C} // pointer to question name
 	answerSection = append(answerSection, byte(qtype>>8), byte(qtype&0xFF))
-	answerSection = append(answerSection, 0x00, 0x01) // CLASS IN
+	answerSection = append(answerSection, 0x00, 0x01)             // CLASS IN
 	answerSection = append(answerSection, 0x00, 0x00, 0x01, 0x00) // TTL = 256
-	answerSection = append(answerSection, 0x00, 0x04) // RDLENGTH
+	answerSection = append(answerSection, 0x00, 0x04)             // RDLENGTH
 
 	switch qtype {
 	case DNSTypeA:
@@ -209,8 +209,8 @@ func TestDNSMessage_Truncated(t *testing.T) {
 
 func TestDNSTypeNameString(t *testing.T) {
 	tests := []struct {
-		qtype   uint16
-		name    string
+		qtype uint16
+		name  string
 	}{
 		{DNSTypeA, "A"},
 		{DNSTypeAAAA, "AAAA"},
@@ -494,7 +494,7 @@ func TestExtractTLSClientHelloSNI_NotClientHello(t *testing.T) {
 	record := []byte{
 		byte(TLSContentTypeHandshake), 0x03, 0x03, // TLS 1.2
 		0x00, 0x0E, // record length
-		0x02, // HandshakeType: ServerHello (not ClientHello)
+		0x02,             // HandshakeType: ServerHello (not ClientHello)
 		0x00, 0x00, 0x0A, // Handshake length
 		0x03, 0x03, // ServerVersion
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -509,14 +509,14 @@ func TestExtractTLSClientHelloSNI_NotClientHello(t *testing.T) {
 // TestSNISuspiciousChecks verifies SNI suspicious pattern checks
 func TestSNISuspiciousChecks(t *testing.T) {
 	tests := []struct {
-		sni          string
-		suspicious   bool
+		sni        string
+		suspicious bool
 	}{
 		{"www.example.com", false},
-		{"stratum.minexmr.com", true},  // mining_pool_domain
-		{"evil.tk", true},             // suspicious_tld
+		{"stratum.minexmr.com", true},       // mining_pool_domain
+		{"evil.tk", true},                   // suspicious_tld
 		{"abcdef1234567890xyz.onion", true}, // tor_hidden_service
-		{"192.168.1.1", true},          // ip_address_sni
+		{"192.168.1.1", true},               // ip_address_sni
 	}
 
 	for _, tt := range tests {

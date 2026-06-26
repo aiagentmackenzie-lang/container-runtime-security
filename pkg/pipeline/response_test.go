@@ -27,10 +27,10 @@ func TestRateLimiter_CloseIdempotent(t *testing.T) {
 // goroutine). Regression guard for the wg.Add in executeGracefulKill.
 func TestResponseActor_StopDrainsGraceful(t *testing.T) {
 	r := NewResponseActorWithConfig("enforce", ResponseActorConfig{
-		Mode:               EnforceModeGraceful,
-		GracePeriodSeconds: 1,
-		MaxKillsPerPod:     10,
-		WindowSeconds:      60,
+		Mode:                EnforceModeGraceful,
+		GracePeriodSeconds:  1,
+		MaxKillsPerPod:      10,
+		WindowSeconds:       60,
 		ProtectedNamespaces: []string{"kube-system"},
 	})
 	// Stop with no pending work must return promptly.

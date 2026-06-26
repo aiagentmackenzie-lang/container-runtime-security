@@ -23,23 +23,23 @@ type MetricsExporter struct {
 	// Counters
 	alertsTotal      *prometheus.CounterVec
 	enforcementTotal *prometheus.CounterVec
-	eventsProcessed   *prometheus.CounterVec
-	ringBufferEvents  prometheus.Counter
-	ringBufferDrops   prometheus.Counter
+	eventsProcessed  *prometheus.CounterVec
+	ringBufferEvents prometheus.Counter
+	ringBufferDrops  prometheus.Counter
 
 	// Histograms
-	eventLatency  *prometheus.HistogramVec
+	eventLatency   *prometheus.HistogramVec
 	enforceLatency *prometheus.HistogramVec
-	aiLatency     *prometheus.HistogramVec
+	aiLatency      *prometheus.HistogramVec
 
 	// Gauges
 	containersTracked prometheus.Gauge
-	rulesLoaded      prometheus.Gauge
+	rulesLoaded       prometheus.Gauge
 
 	// Internal counters for status
-	totalAlerts    atomic.Uint64
-	totalEnforce   atomic.Uint64
-	totalEvents   atomic.Uint64
+	totalAlerts  atomic.Uint64
+	totalEnforce atomic.Uint64
+	totalEvents  atomic.Uint64
 
 	server *http.Server
 }
@@ -240,4 +240,3 @@ func (m *MetricsExporter) SetContainersTracked(count int) {
 func (m *MetricsExporter) SetRulesLoaded(count int) {
 	m.rulesLoaded.Set(float64(count))
 }
-

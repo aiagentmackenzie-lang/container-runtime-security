@@ -22,7 +22,7 @@ func createTestEngine(t *testing.T) *rules.Engine {
 
 func createEnrichedEvent(raw *ebpf.ScarletEvent) *rules.EnrichedEventForRule {
 	return &rules.EnrichedEventForRule{
-		Event:              raw,
+		Event:               raw,
 		ContainerID:         "abc123def456",
 		ContainerName:       "test-container",
 		ContainerImage:      "test-image:latest",
@@ -42,7 +42,7 @@ func makeEvent(category uint8, eventType uint8, comm string) *ebpf.ScarletEvent 
 		PPID:       1,
 		UID:        0,
 		GID:        0,
-		CgroupID:    12345,
+		CgroupID:   12345,
 		PIDNSLevel: 1,
 		Category:   category,
 		EventType:  eventType,
@@ -165,8 +165,8 @@ func TestC2Port(t *testing.T) {
 
 func TestCloudMetadataIP(t *testing.T) {
 	testCases := []struct {
-		ip       string
-		isMeta   bool
+		ip     string
+		isMeta bool
 	}{
 		{"169.254.169.254", true},
 		{"168.63.129.16", true},
