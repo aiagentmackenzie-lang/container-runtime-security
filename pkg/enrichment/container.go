@@ -40,9 +40,9 @@ type Manager struct {
 	config ManagerConfig
 
 	// Three-tier cache (per SRD Section 7.2)
-	pidCache  *PIDCache    // PID → container_id (LRU, 5min TTL)
-	criCache  *CRICache    // container_id → ContainerInfo (event-driven)
-	k8sCache  *K8sCache   // pod → K8s metadata (continuous watch)
+	pidCache *PIDCache // PID → container_id (LRU, 5min TTL)
+	criCache *CRICache // container_id → ContainerInfo (event-driven)
+	k8sCache *K8sCache // pod → K8s metadata (continuous watch)
 
 	// CRI integration for container runtime events
 	cri *CRIIntegration
@@ -451,9 +451,9 @@ func (m *Manager) reapPIDCache(ctx context.Context) {
 		case <-m.stopCh:
 			return
 		case <-ticker.C:
-				m.pidCache.Reap()
-				// Also prune the cgroup map to remove stale entries
-				m.pruneCgroupMap()
+			m.pidCache.Reap()
+			// Also prune the cgroup map to remove stale entries
+			m.pruneCgroupMap()
 		}
 	}
 }
@@ -520,9 +520,9 @@ type PIDCache struct {
 	ttl     time.Duration
 	entries map[uint32]*pidCacheEntry
 	// Doubly-linked list for LRU ordering (most recently used at front)
-	head    *pidCacheEntry // MRU entry
-	tail    *pidCacheEntry // LRU entry (eviction candidate)
-	mu      sync.RWMutex
+	head *pidCacheEntry // MRU entry
+	tail *pidCacheEntry // LRU entry (eviction candidate)
+	mu   sync.RWMutex
 }
 
 type pidCacheEntry struct {
@@ -530,8 +530,8 @@ type pidCacheEntry struct {
 	containerID string
 	expiry      time.Time
 	lastAccess  time.Time
-	prev       *pidCacheEntry
-	next       *pidCacheEntry
+	prev        *pidCacheEntry
+	next        *pidCacheEntry
 }
 
 // NewPIDCache creates a new PID cache with the given maximum size and TTL.
@@ -682,11 +682,11 @@ func (c *PIDCache) removeEntry(entry *pidCacheEntry) {
 // Implements LRU eviction with configurable max size to prevent
 // unbounded memory growth on nodes with high container churn.
 type CRICache struct {
-	entries  map[string]*criCacheEntry
-	maxSize  int           // 0 = unlimited
-	head     *criCacheEntry // MRU
-	tail     *criCacheEntry // LRU (eviction candidate)
-	mu       sync.RWMutex
+	entries map[string]*criCacheEntry
+	maxSize int            // 0 = unlimited
+	head    *criCacheEntry // MRU
+	tail    *criCacheEntry // LRU (eviction candidate)
+	mu      sync.RWMutex
 }
 
 type criCacheEntry struct {

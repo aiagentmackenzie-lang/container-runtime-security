@@ -447,8 +447,8 @@ func TestPagerDutyWebhookSink_Send(t *testing.T) {
 
 func TestPagerDutyWebhookSink_SeverityMapping(t *testing.T) {
 	tests := []struct {
-		priority  string
-		severity  string
+		priority string
+		severity string
 	}{
 		{"critical", "critical"},
 		{"error", "error"},
@@ -959,6 +959,7 @@ func TestSlackWebhookSink_LargeBatch(t *testing.T) {
 		t.Errorf("Expected 2 requests for 25 alerts, got %d", requestCount)
 	}
 }
+
 // TestWebhookCircuitBreaker_Recovery verifies the circuit breaker opens after
 // consecutive failures and recovers via a half-open probe after
 // CircuitResetAfter (regression guard for the previously-dead circuitResetAfter

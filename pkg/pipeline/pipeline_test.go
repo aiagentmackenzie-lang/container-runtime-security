@@ -27,14 +27,14 @@ func makeTestEnrichedEvent(pid uint32, comm string) *pipeline.EnrichedEvent {
 		RawEvent: &ebpf.ScarletEvent{
 			PID:        pid,
 			PPID:       100,
-			CgroupID:    12345,
+			CgroupID:   12345,
 			PIDNSLevel: 1,
 			Category:   ebpf.CatEscape,
 			EventType:  ebpf.EvtSetns,
 			Comm:       commBytes,
 		},
-		ContainerID:        "abc123def456",
-		ContainerName:      "test-container",
+		ContainerID:         "abc123def456",
+		ContainerName:       "test-container",
 		ContainerAttributed: true,
 		Namespace:           "default",
 		PodName:             "test-pod",
@@ -60,17 +60,17 @@ func makeNetworkEnrichedEvent(remoteIP string, remotePort uint16) *pipeline.Enri
 		RawEvent: &ebpf.ScarletEvent{
 			PID:        5000,
 			PPID:       100,
-			CgroupID:    12345,
+			CgroupID:   12345,
 			PIDNSLevel: 1,
 			Category:   ebpf.CatNetwork,
 			EventType:  ebpf.EvtNetConnect,
 			Comm:       commBytes,
 		},
-		ContainerID:        "abc123def456",
-		ContainerName:      "test-container",
+		ContainerID:         "abc123def456",
+		ContainerName:       "test-container",
 		ContainerAttributed: true,
-		Namespace:          "default",
-		PodName:            "test-pod",
+		Namespace:           "default",
+		PodName:             "test-pod",
 	}
 
 	// Set network payload
@@ -603,11 +603,11 @@ func TestPipeline_CorrelatorReceivesSignals(t *testing.T) {
 
 	// Send first signal: shell_procs
 	sig1 := &correlate.Signal{
-		Name:       "shell_procs",
-		PID:        1234,
+		Name:        "shell_procs",
+		PID:         1234,
 		ContainerID: "container-abc",
-		Namespace:  "default",
-		RuleID:     "R014",
+		Namespace:   "default",
+		RuleID:      "R014",
 	}
 	result := correl.ProcessSignal(sig1)
 	if result != nil {
@@ -616,11 +616,11 @@ func TestPipeline_CorrelatorReceivesSignals(t *testing.T) {
 
 	// Send second signal: net_outbound (same PID)
 	sig2 := &correlate.Signal{
-		Name:       "net_outbound",
-		PID:        1234,
+		Name:        "net_outbound",
+		PID:         1234,
 		ContainerID: "container-abc",
-		Namespace:  "default",
-		RuleID:     "R027",
+		Namespace:   "default",
+		RuleID:      "R027",
 	}
 	result = correl.ProcessSignal(sig2)
 	if result == nil {
@@ -668,10 +668,10 @@ func TestEventCategorySignal_ShellExec(t *testing.T) {
 	copy(commBytes[:], "bash")
 
 	event := &ebpf.ScarletEvent{
-		PID:        5000,
-		Category:   ebpf.CatProcess,
-		EventType:  ebpf.EvtExec,
-		Comm:       commBytes,
+		PID:       5000,
+		Category:  ebpf.CatProcess,
+		EventType: ebpf.EvtExec,
+		Comm:      commBytes,
 	}
 
 	signal := pipeline.EventCategorySignal(event)
@@ -685,10 +685,10 @@ func TestEventCategorySignal_MinerExec(t *testing.T) {
 	copy(commBytes[:], "xmrig")
 
 	event := &ebpf.ScarletEvent{
-		PID:        5000,
-		Category:   ebpf.CatProcess,
-		EventType:  ebpf.EvtExec,
-		Comm:       commBytes,
+		PID:       5000,
+		Category:  ebpf.CatProcess,
+		EventType: ebpf.EvtExec,
+		Comm:      commBytes,
 	}
 
 	signal := pipeline.EventCategorySignal(event)
@@ -1051,8 +1051,8 @@ func TestAnomalyAlert_PriorityLevels(t *testing.T) {
 		expected string
 	}{
 		{0.95, rules.PriorityCritical}, // >= 0.9
-		{0.85, rules.PriorityError},      // >= 0.8
-		{0.6, rules.PriorityWarning},     // < 0.8
+		{0.85, rules.PriorityError},    // >= 0.8
+		{0.6, rules.PriorityWarning},   // < 0.8
 	}
 
 	for _, tc := range tests {
@@ -1168,9 +1168,9 @@ func TestPipelineCorrelatorE2E_ShellThenNetwork(t *testing.T) {
 
 	// Create pipeline with all components
 	p := pipeline.NewPipeline(pipeline.PipelineConfig{
-		Mode:        "audit",
-		RuleEngine:  engine,
-		Correlator:  correl,
+		Mode:         "audit",
+		RuleEngine:   engine,
+		Correlator:   correl,
 		AlertEmitter: emitter,
 	})
 	p.InitCorrelationRules()
@@ -1263,24 +1263,24 @@ func TestPipelineCorrelatorE2E_DifferentPIDNoCorrelate(t *testing.T) {
 	var comm1 [ebpf.MaxCommLen]byte
 	copy(comm1[:], "bash")
 	p.ProcessEvent(&ebpf.ScarletEvent{
-		PID:       1111,
-		CgroupID:  99999,
+		PID:        1111,
+		CgroupID:   99999,
 		PIDNSLevel: 1,
-		Category:  ebpf.CatProcess,
-		EventType: ebpf.EvtExec,
-		Comm:      comm1,
+		Category:   ebpf.CatProcess,
+		EventType:  ebpf.EvtExec,
+		Comm:       comm1,
 	})
 
 	// Feed event 2: network connection from DIFFERENT PID 2222
 	var comm2 [ebpf.MaxCommLen]byte
 	copy(comm2[:], "curl")
 	netEvt := &ebpf.ScarletEvent{
-		PID:       2222,
-		CgroupID:  99999,
+		PID:        2222,
+		CgroupID:   99999,
 		PIDNSLevel: 1,
-		Category:  ebpf.CatNetwork,
-		EventType: ebpf.EvtNetConnect,
-		Comm:      comm2,
+		Category:   ebpf.CatNetwork,
+		EventType:  ebpf.EvtNetConnect,
+		Comm:       comm2,
 	}
 	netEvt.Payload.Network.RemotePort = 8080
 
@@ -1302,9 +1302,9 @@ func TestPipelineNetworkE2E_MiningPoolBlock(t *testing.T) {
 	ne := enforcement.NewNetworkEnforcer()
 
 	p := pipeline.NewPipeline(pipeline.PipelineConfig{
-		Mode:           "enforce",
+		Mode:            "enforce",
 		NetworkEnforcer: ne,
-		AlertEmitter:   emitter,
+		AlertEmitter:    emitter,
 	})
 
 	// Create a network event that matches R009 pattern (mining pool port)
@@ -1314,12 +1314,12 @@ func TestPipelineNetworkE2E_MiningPoolBlock(t *testing.T) {
 	netEvent := &ebpf.ScarletEvent{
 		PID:        5000,
 		PPID:       100,
-		CgroupID:    12345,
+		CgroupID:   12345,
 		PIDNSLevel: 1,
-		Category:    ebpf.CatNetwork,
-		EventType:   ebpf.EvtNetConnect,
-		SyscallNr:   42,
-		Comm:        commBytes,
+		Category:   ebpf.CatNetwork,
+		EventType:  ebpf.EvtNetConnect,
+		SyscallNr:  42,
+		Comm:       commBytes,
 	}
 	netEvent.Payload.Network.RemoteAddr = [4]byte{10, 0, 0, 1}
 	netEvent.Payload.Network.RemotePort = 3333 // Mining pool port
@@ -1339,9 +1339,9 @@ func TestPipelineNetworkE2E_AuditModeNoBlock(t *testing.T) {
 	ne := enforcement.NewNetworkEnforcer()
 
 	p := pipeline.NewPipeline(pipeline.PipelineConfig{
-		Mode:           "audit",
+		Mode:            "audit",
 		NetworkEnforcer: ne,
-		AlertEmitter:   emitter,
+		AlertEmitter:    emitter,
 	})
 
 	var commBytes [ebpf.MaxCommLen]byte
@@ -1349,11 +1349,11 @@ func TestPipelineNetworkE2E_AuditModeNoBlock(t *testing.T) {
 
 	netEvent := &ebpf.ScarletEvent{
 		PID:        5000,
-		CgroupID:    12345,
+		CgroupID:   12345,
 		PIDNSLevel: 1,
-		Category:    ebpf.CatNetwork,
-		EventType:   ebpf.EvtNetConnect,
-		Comm:        commBytes,
+		Category:   ebpf.CatNetwork,
+		EventType:  ebpf.EvtNetConnect,
+		Comm:       commBytes,
 	}
 	netEvent.Payload.Network.RemotePort = 3333
 
@@ -1381,11 +1381,11 @@ func TestPipelineNetworkE2E_NilEnforcerNoPanic(t *testing.T) {
 	// Process a mining pool event without a NetworkEnforcer
 	netEvent := &ebpf.ScarletEvent{
 		PID:        5000,
-		CgroupID:    12345,
+		CgroupID:   12345,
 		PIDNSLevel: 1,
-		Category:    ebpf.CatNetwork,
-		EventType:   ebpf.EvtNetConnect,
-		Comm:        commBytes,
+		Category:   ebpf.CatNetwork,
+		EventType:  ebpf.EvtNetConnect,
+		Comm:       commBytes,
 	}
 	netEvent.Payload.Network.RemotePort = 3333
 
@@ -1519,6 +1519,7 @@ func TestSuggestionMinConfidence_Custom(t *testing.T) {
 		t.Errorf("Expected suggestion min confidence 0.8, got %f", p.SuggestionMinConfidence())
 	}
 }
+
 // ── Baseline Learning Mode Tests ────────────────────────────────────────────
 
 func TestLearningMode_DefaultEnabled(t *testing.T) {
@@ -1629,10 +1630,10 @@ func TestLearningMode_NotBuildWithoutImage(t *testing.T) {
 func TestLearningMode_DisabledNoBuild(t *testing.T) {
 	emitter := output.NewAlertEmitterForTest()
 	p := pipeline.NewPipeline(pipeline.PipelineConfig{
-		Mode:                  "audit",
-		AnomalyThreshold:      0.99,
-		MinEventsForBaseline:  5,
-		AlertEmitter:          emitter,
+		Mode:                 "audit",
+		AnomalyThreshold:     0.99,
+		MinEventsForBaseline: 5,
+		AlertEmitter:         emitter,
 	})
 	p.SetLearningMode(false) // Disable learning mode at runtime
 
@@ -1717,7 +1718,7 @@ func TestFeedSyscallForAnomalyCgroupFallback(t *testing.T) {
 			SyscallNr:  59,
 			Comm:       commBytes,
 		},
-		ContainerID:        "",
+		ContainerID:         "",
 		ContainerAttributed: false, // Unattributed
 	}
 
@@ -1752,10 +1753,10 @@ func TestFeedSyscallForAnomalyCgroupFallback_CreatesExtractorByKey(t *testing.T)
 
 	event := &pipeline.EnrichedEvent{
 		RawEvent: &ebpf.ScarletEvent{
-			PID:        5000,
-			CgroupID:   12345,
-			SyscallNr:  1,
-			Comm:       commBytes,
+			PID:       5000,
+			CgroupID:  12345,
+			SyscallNr: 1,
+			Comm:      commBytes,
 		},
 		ContainerID:         "",
 		ContainerAttributed: false,
@@ -1789,10 +1790,10 @@ func TestFeedSyscallForAnomalyCgroupFallback_DifferentCgroups(t *testing.T) {
 	for cgroupID := uint64(11111); cgroupID <= 11112; cgroupID++ {
 		event := &pipeline.EnrichedEvent{
 			RawEvent: &ebpf.ScarletEvent{
-				PID:        5000,
-				CgroupID:   cgroupID,
-				SyscallNr:  1,
-				Comm:       commBytes,
+				PID:       5000,
+				CgroupID:  cgroupID,
+				SyscallNr: 1,
+				Comm:      commBytes,
 			},
 			ContainerID:         "",
 			ContainerAttributed: false,
@@ -1882,11 +1883,11 @@ func (m *mockRuleSuggester) SuggestRule(ctx context.Context, incident *ai.Incide
 
 	// Default: return a moderate-confidence suggestion
 	return &ai.RuleSuggestion{
-		RuleYAML:        "mock_rule_yaml",
-		Reasoning:       "mock reasoning",
+		RuleYAML:         "mock_rule_yaml",
+		Reasoning:        "mock reasoning",
 		BasedOnIncidents: len(incident.Events),
 		Confidence:       0.8,
-		Status:          "draft",
+		Status:           "draft",
 	}, nil
 }
 
@@ -1926,10 +1927,10 @@ func TestSuggestRule_CorrelationFires(t *testing.T) {
 	emitter := output.NewAlertEmitterForTest()
 
 	p := pipeline.NewPipeline(pipeline.PipelineConfig{
-		Mode:         "audit",
-		RuleEngine:   engine,
-		Correlator:   correl,
-		AlertEmitter: emitter,
+		Mode:            "audit",
+		RuleEngine:      engine,
+		Correlator:      correl,
+		AlertEmitter:    emitter,
 		AIRuleSuggester: suggester,
 	})
 	p.InitCorrelationRules()
@@ -2014,10 +2015,10 @@ func TestSuggestRule_AnomalyDetected(t *testing.T) {
 			EventType:  ebpf.EvtExec,
 			Comm:       commBytes,
 		},
-		ContainerID:        "container-abc",
+		ContainerID:         "container-abc",
 		ContainerAttributed: true,
-		ContainerImage:     "alpine:latest",
-		Namespace:         "default",
+		ContainerImage:      "alpine:latest",
+		Namespace:           "default",
 	}
 
 	// Feed syscalls to build up anomaly score, then set a high score

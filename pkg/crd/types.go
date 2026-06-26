@@ -166,7 +166,7 @@ type CRDObjectMeta struct {
 	Labels            map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 	Annotations       map[string]string `json:"annotations,omitempty" yaml:"annotations,omitempty"`
 	CreationTimestamp time.Time         `json:"creationTimestamp,omitempty" yaml:"creationTimestamp,omitempty"`
-	ResourceVersion    string            `json:"resourceVersion,omitempty" yaml:"resourceVersion,omitempty"`
+	ResourceVersion   string            `json:"resourceVersion,omitempty" yaml:"resourceVersion,omitempty"`
 }
 
 // ScarletRuntimePolicyStatus is the observed state of a RuntimePolicy.
@@ -193,14 +193,14 @@ type ScarletRuntimePolicyStatus struct {
 // When not in Kubernetes, it loads policies from YAML files on disk.
 type PolicyWatcher struct {
 	// Configuration
-	configDir string          // Directory containing policy YAML files
-	nodeName  string          // Node name for K8s API watch filtering
-	namespace string          // Namespace to watch for policies
+	configDir string // Directory containing policy YAML files
+	nodeName  string // Node name for K8s API watch filtering
+	namespace string // Namespace to watch for policies
 
 	// Dependencies
-	engine      *rules.Engine
-	enforcer   *enforcement.NetworkEnforcer
-	actor      *pipeline.ResponseActor
+	engine   *rules.Engine
+	enforcer *enforcement.NetworkEnforcer
+	actor    *pipeline.ResponseActor
 
 	// State
 	policies map[string]*ScarletRuntimePolicy // name → policy
@@ -212,10 +212,10 @@ type PolicyWatcher struct {
 	wg        sync.WaitGroup
 
 	// Stats
-	policiesLoaded   int
-	policiesApplied  int
-	loadErrors       int
-	lastLoadTime     time.Time
+	policiesLoaded  int
+	policiesApplied int
+	loadErrors      int
+	lastLoadTime    time.Time
 }
 
 // NewPolicyWatcher creates a new policy watcher.

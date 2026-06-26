@@ -72,7 +72,7 @@ type K8sIntegration struct {
 	eventsProcessed int64
 	connectAttempts int
 	lastSyncTime    time.Time
-	lastError      error
+	lastError       error
 
 	mu sync.RWMutex
 }

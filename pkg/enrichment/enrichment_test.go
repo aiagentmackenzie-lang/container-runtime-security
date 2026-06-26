@@ -117,9 +117,9 @@ func TestCRIRuntimeTypes(t *testing.T) {
 func TestCRIContainerStatuses(t *testing.T) {
 	statuses := map[enrichment.CRIContainerStatus]string{
 		enrichment.CRIContainerCreated: "created",
-		enrichment.CRIContainerRunning:  "running",
-		enrichment.CRIContainerExited:   "exited",
-		enrichment.CRIContainerUnknown:  "unknown",
+		enrichment.CRIContainerRunning: "running",
+		enrichment.CRIContainerExited:  "exited",
+		enrichment.CRIContainerUnknown: "unknown",
 	}
 	for status, expected := range statuses {
 		if string(status) != expected {
@@ -541,7 +541,7 @@ func TestExtractContainerIDFromPodStatus(t *testing.T) {
 		{"cri-o://789ghi012jkl", "789ghi012jkl"},
 		{"docker://345mno678pqr", "345mno678pqr"},
 		{"abc123", "abc123"}, // No prefix
-		{"", ""},               // Empty
+		{"", ""},             // Empty
 	}
 
 	for _, tc := range tests {

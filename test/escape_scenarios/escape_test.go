@@ -26,7 +26,7 @@ func createTestEngine(t *testing.T) *rules.Engine {
 // createEnrichedEvent creates an enriched event for rule evaluation.
 func createEnrichedEvent(raw *ebpf.ScarletEvent) *rules.EnrichedEventForRule {
 	return &rules.EnrichedEventForRule{
-		Event:              raw,
+		Event:               raw,
 		ContainerID:         "abc123def456",
 		ContainerName:       "test-container",
 		ContainerImage:      "test-image:latest",
@@ -48,7 +48,7 @@ func makeBasicEvent(category uint8, eventType uint8, comm string) *ebpf.ScarletE
 		PPID:       100,
 		UID:        0,
 		GID:        0,
-		CgroupID:    12345,
+		CgroupID:   12345,
 		PIDNSLevel: 1, // container process
 		Category:   category,
 		EventType:  eventType,

@@ -37,8 +37,8 @@ func TestException_ExactMatch_SingleField(t *testing.T) {
 	}
 
 	macros := map[string]rules.MacroDef{
-		"container":        {Name: "container", Condition: "container.id != host"},
-		"spawned_process":  {Name: "spawned_process", Condition: "evt.type in (execve, execveat)"},
+		"container":       {Name: "container", Condition: "container.id != host"},
+		"spawned_process": {Name: "spawned_process", Condition: "evt.type in (execve, execveat)"},
 		"miner_procs":     {Name: "miner_procs", Condition: "proc.name in (miner_binaries)"},
 	}
 
@@ -69,13 +69,13 @@ func TestException_ExactMatch_SingleField(t *testing.T) {
 
 	// Test the exception evaluator directly
 	event := &rules.EnrichedEventForRule{
-		Event:              makeMinerEvent("xmrig"),
-		ContainerID:        "abc123",
-		ContainerName:      "test-miner",
-		ContainerImage:     "trusted/miner-image",
+		Event:               makeMinerEvent("xmrig"),
+		ContainerID:         "abc123",
+		ContainerName:       "test-miner",
+		ContainerImage:      "trusted/miner-image",
 		ContainerAttributed: true,
-		Namespace:          "default",
-		PodName:            "test-pod",
+		Namespace:           "default",
+		PodName:             "test-pod",
 	}
 
 	// Engine should match the rule but exception should suppress it
@@ -120,8 +120,8 @@ func TestException_MultiFieldMatching(t *testing.T) {
 
 	// Manually compile the rule
 	macros := map[string]rules.MacroDef{
-		"container":        {Name: "container", Condition: "container.id != host"},
-		"spawned_process":  {Name: "spawned_process", Condition: "evt.type in (execve, execveat)"},
+		"container":       {Name: "container", Condition: "container.id != host"},
+		"spawned_process": {Name: "spawned_process", Condition: "evt.type in (execve, execveat)"},
 	}
 
 	for _, rd := range parsedRules {
@@ -134,13 +134,13 @@ func TestException_MultiFieldMatching(t *testing.T) {
 
 	// Test event that matches exception row 2: debug-pod/tools + sh
 	event := &rules.EnrichedEventForRule{
-		Event:              makeShellEvent("sh"),
-		ContainerID:        "abc123",
-		ContainerName:      "debug-shell",
-		ContainerImage:     "debug-pod/tools",
+		Event:               makeShellEvent("sh"),
+		ContainerID:         "abc123",
+		ContainerName:       "debug-shell",
+		ContainerImage:      "debug-pod/tools",
 		ContainerAttributed: true,
-		Namespace:          "default",
-		PodName:            "debug-pod",
+		Namespace:           "default",
+		PodName:             "debug-pod",
 	}
 
 	match := engine.Evaluate(event)
@@ -151,13 +151,13 @@ func TestException_MultiFieldMatching(t *testing.T) {
 
 	// Test event that does NOT match any exception: different image + bash
 	event2 := &rules.EnrichedEventForRule{
-		Event:              makeShellEvent("bash"),
-		ContainerID:        "def456",
-		ContainerName:      "attacker-shell",
-		ContainerImage:     "malicious/image",
+		Event:               makeShellEvent("bash"),
+		ContainerID:         "def456",
+		ContainerName:       "attacker-shell",
+		ContainerImage:      "malicious/image",
 		ContainerAttributed: true,
-		Namespace:          "default",
-		PodName:            "compromised-pod",
+		Namespace:           "default",
+		PodName:             "compromised-pod",
 	}
 
 	match2 := engine.Evaluate(event2)
@@ -194,8 +194,8 @@ func TestException_ContainerNameMatch(t *testing.T) {
 	parsedRules, _, _, _ := parser.ParseYAML([]byte(yamlRules))
 
 	macros := map[string]rules.MacroDef{
-		"container":        {Name: "container", Condition: "container.id != host"},
-		"spawned_process":  {Name: "spawned_process", Condition: "evt.type in (execve, execveat)"},
+		"container":       {Name: "container", Condition: "container.id != host"},
+		"spawned_process": {Name: "spawned_process", Condition: "evt.type in (execve, execveat)"},
 	}
 
 	for _, rd := range parsedRules {
@@ -208,13 +208,13 @@ func TestException_ContainerNameMatch(t *testing.T) {
 
 	// Exception match: container.name = safe-job-runner
 	event := &rules.EnrichedEventForRule{
-		Event:              makeShellEvent("nginx"),
-		ContainerID:        "abc",
-		ContainerName:      "safe-job-runner",
-		ContainerImage:     "alpine:latest",
+		Event:               makeShellEvent("nginx"),
+		ContainerID:         "abc",
+		ContainerName:       "safe-job-runner",
+		ContainerImage:      "alpine:latest",
 		ContainerAttributed: true,
-		Namespace:          "default",
-		PodName:            "safe-job",
+		Namespace:           "default",
+		PodName:             "safe-job",
 	}
 
 	match := engine.Evaluate(event)
@@ -224,13 +224,13 @@ func TestException_ContainerNameMatch(t *testing.T) {
 
 	// Non-match: different container name
 	event2 := &rules.EnrichedEventForRule{
-		Event:              makeShellEvent("nginx"),
-		ContainerID:        "def",
-		ContainerName:      "unknown-job",
-		ContainerImage:     "alpine:latest",
+		Event:               makeShellEvent("nginx"),
+		ContainerID:         "def",
+		ContainerName:       "unknown-job",
+		ContainerImage:      "alpine:latest",
 		ContainerAttributed: true,
-		Namespace:          "default",
-		PodName:            "unknown-job",
+		Namespace:           "default",
+		PodName:             "unknown-job",
 	}
 
 	match2 := engine.Evaluate(event2)
@@ -264,8 +264,8 @@ func TestException_NamespaceField(t *testing.T) {
 	parsedRules, _, _, _ := parser.ParseYAML([]byte(yamlRules))
 
 	macros := map[string]rules.MacroDef{
-		"container":        {Name: "container", Condition: "container.id != host"},
-		"spawned_process":  {Name: "spawned_process", Condition: "evt.type in (execve, execveat)"},
+		"container":       {Name: "container", Condition: "container.id != host"},
+		"spawned_process": {Name: "spawned_process", Condition: "evt.type in (execve, execveat)"},
 	}
 
 	for _, rd := range parsedRules {
@@ -278,13 +278,13 @@ func TestException_NamespaceField(t *testing.T) {
 
 	// Exception match: namespace = dev
 	event := &rules.EnrichedEventForRule{
-		Event:              makeShellEvent("bash"),
-		ContainerID:        "abc",
-		ContainerName:      "dev-tool",
-		ContainerImage:     "alpine:latest",
+		Event:               makeShellEvent("bash"),
+		ContainerID:         "abc",
+		ContainerName:       "dev-tool",
+		ContainerImage:      "alpine:latest",
 		ContainerAttributed: true,
-		Namespace:          "dev",
-		PodName:            "dev-pod",
+		Namespace:           "dev",
+		PodName:             "dev-pod",
 	}
 
 	match := engine.Evaluate(event)
@@ -294,13 +294,13 @@ func TestException_NamespaceField(t *testing.T) {
 
 	// No match: production namespace
 	event2 := &rules.EnrichedEventForRule{
-		Event:              makeShellEvent("bash"),
-		ContainerID:        "def",
-		ContainerName:      "prod-tool",
-		ContainerImage:     "alpine:latest",
+		Event:               makeShellEvent("bash"),
+		ContainerID:         "def",
+		ContainerName:       "prod-tool",
+		ContainerImage:      "alpine:latest",
 		ContainerAttributed: true,
-		Namespace:          "production",
-		PodName:            "prod-pod",
+		Namespace:           "production",
+		PodName:             "prod-pod",
 	}
 
 	match2 := engine.Evaluate(event2)
@@ -338,7 +338,7 @@ func makeMinerEvent(comm string) *ebpf.ScarletEvent {
 		PID:        1000,
 		TGID:       1000,
 		PPID:       1,
-		CgroupID:    99999,
+		CgroupID:   99999,
 		PIDNSLevel: 1,
 		Category:   ebpf.CatProcess,
 		EventType:  ebpf.EvtExec,
@@ -353,7 +353,7 @@ func makeShellEvent(comm string) *ebpf.ScarletEvent {
 		PID:        2000,
 		TGID:       2000,
 		PPID:       1,
-		CgroupID:    99998,
+		CgroupID:   99998,
 		PIDNSLevel: 1,
 		Category:   ebpf.CatProcess,
 		EventType:  ebpf.EvtExec,

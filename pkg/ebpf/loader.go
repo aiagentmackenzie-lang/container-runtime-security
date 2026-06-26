@@ -81,18 +81,18 @@ type probeAttachTarget struct {
 // Programs not in this map are skipped with a warning.
 var probeAttachTargets = map[string]probeAttachTarget{
 	// process.bpf.c
-	"trace_sched_process_exec":  {attachTracepoint, "sched", "sched_process_exec", ""},
-	"trace_sched_process_fork":  {attachTracepoint, "sched", "sched_process_fork", ""},
-	"trace_sched_process_exit":  {attachTracepoint, "sched", "sched_process_exit", ""},
+	"trace_sched_process_exec": {attachTracepoint, "sched", "sched_process_exec", ""},
+	"trace_sched_process_fork": {attachTracepoint, "sched", "sched_process_fork", ""},
+	"trace_sched_process_exit": {attachTracepoint, "sched", "sched_process_exit", ""},
 	// file.bpf.c
-	"trace_openat":        {attachTracepoint, "syscalls", "sys_enter_openat", ""},
-	"trace_unlinkat":      {attachTracepoint, "syscalls", "sys_enter_unlinkat", ""},
-	"trace_memfd_create":  {attachTracepoint, "syscalls", "sys_enter_memfd_create", ""},
+	"trace_openat":       {attachTracepoint, "syscalls", "sys_enter_openat", ""},
+	"trace_unlinkat":     {attachTracepoint, "syscalls", "sys_enter_unlinkat", ""},
+	"trace_memfd_create": {attachTracepoint, "syscalls", "sys_enter_memfd_create", ""},
 	// network.bpf.c
-	"trace_tcp_v4_connect":      {attachKprobe, "", "", "tcp_v4_connect"},
-	"trace_tcp_v6_connect":      {attachKprobe, "", "", "tcp_v6_connect"},
+	"trace_tcp_v4_connect":       {attachKprobe, "", "", "tcp_v4_connect"},
+	"trace_tcp_v6_connect":       {attachKprobe, "", "", "tcp_v6_connect"},
 	"trace_ip4_datagram_connect": {attachKprobe, "", "", "ip4_datagram_connect"},
-	"trace_listen":              {attachTracepoint, "syscalls", "sys_enter_listen", ""},
+	"trace_listen":               {attachTracepoint, "syscalls", "sys_enter_listen", ""},
 	// escape.bpf.c
 	"trace_setns":       {attachTracepoint, "syscalls", "sys_enter_setns", ""},
 	"trace_unshare":     {attachTracepoint, "syscalls", "sys_enter_unshare", ""},
@@ -119,8 +119,8 @@ type Loader struct {
 	readers     []*ringbuf.Reader
 
 	// Replicated maps (one per collection) — updated on all when registering.
-	cgroupMaps   []*ebpf.Map
-	syscallMaps  []*ebpf.Map
+	cgroupMaps  []*ebpf.Map
+	syscallMaps []*ebpf.Map
 
 	// Category-specific singletons.
 	sensitivePathMap  *ebpf.Map // file collection
@@ -137,22 +137,22 @@ type Loader struct {
 	pollInterval time.Duration
 
 	// Event channels
-	eventCh     chan *ScarletEvent       // real ring-buffer events
-	testEventCh chan *ScarletEvent       // in-memory events for testing (bypasses ring buffer)
+	eventCh     chan *ScarletEvent // real ring-buffer events
+	testEventCh chan *ScarletEvent // in-memory events for testing (bypasses ring buffer)
 
 	// State
-	running bool
+	running  bool
 	mockMode bool
-	stopCh  chan struct{}
-	wg      sync.WaitGroup
+	stopCh   chan struct{}
+	wg       sync.WaitGroup
 }
 
 // LoaderConfig holds configuration for the eBPF loader.
 type LoaderConfig struct {
 	BPFObjectDir    string        // Directory containing compiled .o files
-	RingBufSizeMB   int          // Ring buffer size in MB (default 4)
+	RingBufSizeMB   int           // Ring buffer size in MB (default 4)
 	PollInterval    time.Duration // Ring buffer poll interval (default 100ms)
-	EventBufferSize int          // Channel buffer for decoded events (default 1024)
+	EventBufferSize int           // Channel buffer for decoded events (default 1024)
 }
 
 // NewLoader creates a new eBPF program loader.
@@ -168,13 +168,13 @@ func NewLoader(cfg LoaderConfig) *Loader {
 	}
 
 	return &Loader{
-		bpfObjDir:   cfg.BPFObjectDir,
-		ringBufSize: cfg.RingBufSizeMB * 1024 * 1024,
+		bpfObjDir:    cfg.BPFObjectDir,
+		ringBufSize:  cfg.RingBufSizeMB * 1024 * 1024,
 		pollInterval: cfg.PollInterval,
-		eventCh:     make(chan *ScarletEvent, cfg.EventBufferSize),
-		filter:      NewRingBufferFilter(),
-		mockMode:    runtime.GOOS != "linux" || !isBPFAvailable(),
-		stopCh:      make(chan struct{}),
+		eventCh:      make(chan *ScarletEvent, cfg.EventBufferSize),
+		filter:       NewRingBufferFilter(),
+		mockMode:     runtime.GOOS != "linux" || !isBPFAvailable(),
+		stopCh:       make(chan struct{}),
 	}
 }
 

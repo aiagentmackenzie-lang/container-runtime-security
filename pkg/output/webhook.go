@@ -95,14 +95,14 @@ type WebhookSinkConfig struct {
 // DefaultWebhookSinkConfig returns a WebhookSinkConfig with sensible defaults.
 func DefaultWebhookSinkConfig() WebhookSinkConfig {
 	return WebhookSinkConfig{
-		Type:           WebhookSinkGeneric,
-		RetryCount:     3,
-		RetryDelay:     1 * time.Second,
-		Timeout:        10 * time.Second,
-		BatchSize:      1,
-		BatchInterval:  5 * time.Second,
-		TLSMinVersion:  tls.VersionTLS12,
-		Enabled:        true,
+		Type:          WebhookSinkGeneric,
+		RetryCount:    3,
+		RetryDelay:    1 * time.Second,
+		Timeout:       10 * time.Second,
+		BatchSize:     1,
+		BatchInterval: 5 * time.Second,
+		TLSMinVersion: tls.VersionTLS12,
+		Enabled:       true,
 	}
 }
 
@@ -132,14 +132,14 @@ type WebhookSink interface {
 
 // WebhookSinkStats holds statistics for a webhook sink.
 type WebhookSinkStats struct {
-	URL         string        `json:"url"`
+	URL         string          `json:"url"`
 	Type        WebhookSinkType `json:"type"`
-	Enabled     bool          `json:"enabled"`
-	Sent        int64         `json:"sent"`
-	Failed      int64         `json:"failed"`
-	Retried     int64         `json:"retried"`
-	Batched     int64         `json:"batched"`
-	CircuitOpen bool          `json:"circuit_open"`
+	Enabled     bool            `json:"enabled"`
+	Sent        int64           `json:"sent"`
+	Failed      int64           `json:"failed"`
+	Retried     int64           `json:"retried"`
+	Batched     int64           `json:"batched"`
+	CircuitOpen bool            `json:"circuit_open"`
 }
 
 // ── Base Sink ─────────────────────────────────────────────────────────
@@ -150,11 +150,11 @@ type baseWebhookSink struct {
 	client *http.Client
 
 	// Stats
-	mu         sync.Mutex
-	sent       int64
-	failed     int64
-	retried    int64
-	batched    int64
+	mu      sync.Mutex
+	sent    int64
+	failed  int64
+	retried int64
+	batched int64
 
 	// Circuit breaker
 	consecutiveFailures int
@@ -364,11 +364,11 @@ func NewSlackWebhookSink(cfg WebhookSinkConfig) *SlackWebhookSink {
 
 // SlackAttachment represents a Slack message attachment.
 type SlackAttachment struct {
-	Color     string                 `json:"color,omitempty"`
-	Title     string                 `json:"title,omitempty"`
-	Text      string                 `json:"text,omitempty"`
-	Fields   []SlackField            `json:"fields,omitempty"`
-	MrkdwnIn []string                `json:"mrkdwn_in,omitempty"`
+	Color    string                 `json:"color,omitempty"`
+	Title    string                 `json:"title,omitempty"`
+	Text     string                 `json:"text,omitempty"`
+	Fields   []SlackField           `json:"fields,omitempty"`
+	MrkdwnIn []string               `json:"mrkdwn_in,omitempty"`
 	Footer   string                 `json:"footer,omitempty"`
 	Ts       int64                  `json:"ts,omitempty"`
 	Metadata map[string]interface{} `json:"-"`
@@ -493,11 +493,11 @@ func (s *SlackWebhookSink) buildAttachment(alert *Alert) SlackAttachment {
 	color := priorityColor(alert.Priority)
 
 	attachment := SlackAttachment{
-		Color: color,
-		Title: fmt.Sprintf("[%s] %s", alert.RuleID, alert.RuleName),
-		Text:  alert.Output,
+		Color:  color,
+		Title:  fmt.Sprintf("[%s] %s", alert.RuleID, alert.RuleName),
+		Text:   alert.Output,
 		Footer: "SecurityScarlet Runtime",
-		Ts:    alert.Timestamp.Unix(),
+		Ts:     alert.Timestamp.Unix(),
 		Fields: []SlackField{
 			{Title: "Priority", Value: alert.Priority, Short: true},
 			{Title: "Action", Value: alert.Action, Short: true},
@@ -596,18 +596,18 @@ func NewPagerDutyWebhookSink(cfg WebhookSinkConfig) *PagerDutyWebhookSink {
 
 // PagerDutyPayload represents a PagerDuty Events API v2 payload.
 type PagerDutyPayload struct {
-	RoutingKey  string             `json:"routing_key"`
-	EventAction string             `json:"event_action"`
-	DedupKey    string             `json:"dedup_key,omitempty"`
-	Severity    string             `json:"severity,omitempty"`
-	Source      string             `json:"source"`
-	Component   string             `json:"component,omitempty"`
-	Group       string             `json:"group,omitempty"`
-	Class       string             `json:"class,omitempty"`
-	Summary     string             `json:"summary"`
-	Timestamp   string             `json:"timestamp,omitempty"`
+	RoutingKey    string            `json:"routing_key"`
+	EventAction   string            `json:"event_action"`
+	DedupKey      string            `json:"dedup_key,omitempty"`
+	Severity      string            `json:"severity,omitempty"`
+	Source        string            `json:"source"`
+	Component     string            `json:"component,omitempty"`
+	Group         string            `json:"group,omitempty"`
+	Class         string            `json:"class,omitempty"`
+	Summary       string            `json:"summary"`
+	Timestamp     string            `json:"timestamp,omitempty"`
 	CustomDetails map[string]string `json:"custom_details,omitempty"`
-	Links       []PagerDutyLink     `json:"links,omitempty"`
+	Links         []PagerDutyLink   `json:"links,omitempty"`
 }
 
 // PagerDutyLink represents a PagerDuty event link.
@@ -702,14 +702,14 @@ func (p *PagerDutyWebhookSink) buildEvent(alert *Alert) PagerDutyEvent {
 	}
 
 	details := map[string]string{
-		"rule_id":     alert.RuleID,
-		"rule_name":   alert.RuleName,
-		"priority":    alert.Priority,
-		"action":      alert.Action,
-		"process":     alert.ProcessName,
-		"pid":         fmt.Sprintf("%d", alert.PID),
-		"category":    alert.Category,
-		"event_type":  alert.EventType,
+		"rule_id":    alert.RuleID,
+		"rule_name":  alert.RuleName,
+		"priority":   alert.Priority,
+		"action":     alert.Action,
+		"process":    alert.ProcessName,
+		"pid":        fmt.Sprintf("%d", alert.PID),
+		"category":   alert.Category,
+		"event_type": alert.EventType,
 	}
 
 	if alert.ContainerName != "" {
@@ -735,15 +735,15 @@ func (p *PagerDutyWebhookSink) buildEvent(alert *Alert) PagerDutyEvent {
 
 	event := PagerDutyEvent{
 		Payload: PagerDutyPayload{
-			RoutingKey:  p.base.config.PagerDutyRoutingKey,
-			EventAction:  eventAction,
-			DedupKey:     dedupKey,
-			Severity:     severity,
-			Source:       source,
-			Component:    "container-runtime",
-			Class:        alert.Category,
-			Summary:      summary,
-			Timestamp:    alert.Timestamp.Format(time.RFC3339),
+			RoutingKey:    p.base.config.PagerDutyRoutingKey,
+			EventAction:   eventAction,
+			DedupKey:      dedupKey,
+			Severity:      severity,
+			Source:        source,
+			Component:     "container-runtime",
+			Class:         alert.Category,
+			Summary:       summary,
+			Timestamp:     alert.Timestamp.Format(time.RFC3339),
 			CustomDetails: details,
 		},
 	}

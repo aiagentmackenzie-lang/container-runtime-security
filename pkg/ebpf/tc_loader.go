@@ -56,9 +56,9 @@ type TCLoader struct {
 	priority int      // TC program priority (lower = higher priority)
 
 	// Loaded collection + maps
-	collection    *ebpf.Collection
-	blocklistMap  *ebpf.Map
-	blocklistMapFD int  // File descriptor for the blocklist BPF hash map
+	collection     *ebpf.Collection
+	blocklistMap   *ebpf.Map
+	blocklistMapFD int // File descriptor for the blocklist BPF hash map
 
 	// Attached links (ingress + egress per interface)
 	links []link.Link
@@ -307,7 +307,7 @@ func (t *TCLoader) UpdateBlocklistEntry(ip uint32, port uint16, protocol uint8, 
 		TTLSeconds:  0,
 		RuleID:      uint32FromAction(action),
 		BlockType:   scarletNetBlockCombined, // SCARLET_NET_BLOCK_COMBINED
-		Reason:       action,
+		Reason:      action,
 	}
 	if err := t.blocklistMap.Update(key, value, ebpf.UpdateAny); err != nil {
 		return fmt.Errorf("blocklist map update: %w", err)
@@ -363,8 +363,8 @@ type BlocklistKey struct {
 // field values are metadata; the struct size must still match exactly.
 type BlocklistValue struct {
 	BlockTimeNs uint64 // bpf_ktime_get_ns() when the block was added
-	TTLSeconds  uint32  // Block duration in seconds
-	RuleID      uint32  // Rule that triggered the block (e.g., R009)
+	TTLSeconds  uint32 // Block duration in seconds
+	RuleID      uint32 // Rule that triggered the block (e.g., R009)
 	BlockType   uint8  // SCARLET_NET_BLOCK_*
 	Reason      uint8  // Reason code
 	Pad         uint16 // Alignment padding

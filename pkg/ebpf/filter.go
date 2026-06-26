@@ -65,11 +65,11 @@ type RingBufferFilter struct {
 	dropProbability float64
 
 	// Stats
-	eventsSeen    atomic.Uint64
-	eventsPassed  atomic.Uint64
-	eventsDropped atomic.Uint64
+	eventsSeen       atomic.Uint64
+	eventsPassed     atomic.Uint64
+	eventsDropped    atomic.Uint64
 	eventsByCategory map[uint8]*categoryStats
-	catStatsMu    sync.RWMutex
+	catStatsMu       sync.RWMutex
 }
 
 // categoryStats tracks per-category filter statistics.
@@ -82,11 +82,11 @@ type categoryStats struct {
 // NewRingBufferFilter creates a new ring buffer filter with no filtering.
 func NewRingBufferFilter() *RingBufferFilter {
 	return &RingBufferFilter{
-		categoryFilter: make(map[uint8]bool),
-		pidFilter:      make(map[uint32]bool),
-		pidBlacklist:   make(map[uint32]bool),
-		cgroupFilter:   make(map[uint64]bool),
-		syscallFilter:  make(map[uint16]bool),
+		categoryFilter:   make(map[uint8]bool),
+		pidFilter:        make(map[uint32]bool),
+		pidBlacklist:     make(map[uint32]bool),
+		cgroupFilter:     make(map[uint64]bool),
+		syscallFilter:    make(map[uint16]bool),
 		eventsByCategory: make(map[uint8]*categoryStats),
 	}
 }
@@ -315,14 +315,14 @@ func (f *RingBufferFilter) FilterStats() RingBufferFilterStats {
 	defer f.mu.RUnlock()
 
 	stats := RingBufferFilterStats{
-		EventsSeen:       f.eventsSeen.Load(),
-		EventsPassed:     f.eventsPassed.Load(),
-		EventsDropped:    f.eventsDropped.Load(),
-		DropProbability:  f.dropProbability,
+		EventsSeen:         f.eventsSeen.Load(),
+		EventsPassed:       f.eventsPassed.Load(),
+		EventsDropped:      f.eventsDropped.Load(),
+		DropProbability:    f.dropProbability,
 		CategoryFilterSize: len(f.categoryFilter),
-		PIDFilterSize:     len(f.pidFilter),
+		PIDFilterSize:      len(f.pidFilter),
 		PIDBlacklistSize:   len(f.pidBlacklist),
-		CgroupFilterSize:  len(f.cgroupFilter),
+		CgroupFilterSize:   len(f.cgroupFilter),
 		SyscallFilterSize:  len(f.syscallFilter),
 	}
 
@@ -331,8 +331,8 @@ func (f *RingBufferFilter) FilterStats() RingBufferFilterStats {
 	for cat, catStats := range f.eventsByCategory {
 		name := CategoryName[cat]
 		stats.ByCategory = append(stats.ByCategory, CategoryFilterStats{
-			Category:    name,
-			CategoryID:  cat,
+			Category:   name,
+			CategoryID: cat,
 			Seen:       catStats.seen.Load(),
 			Passed:     catStats.passed.Load(),
 			Dropped:    catStats.dropped.Load(),
@@ -345,22 +345,22 @@ func (f *RingBufferFilter) FilterStats() RingBufferFilterStats {
 
 // RingBufferFilterStats holds statistics about the ring buffer filter.
 type RingBufferFilterStats struct {
-	EventsSeen       uint64  `json:"events_seen"`
-	EventsPassed     uint64  `json:"events_passed"`
-	EventsDropped    uint64  `json:"events_dropped"`
-	DropProbability  float64 `json:"drop_probability"`
-	CategoryFilterSize int   `json:"category_filter_size"`
-	PIDFilterSize     int   `json:"pid_filter_size"`
-	PIDBlacklistSize  int   `json:"pid_blacklist_size"`
-	CgroupFilterSize  int   `json:"cgroup_filter_size"`
-	SyscallFilterSize  int   `json:"syscall_filter_size"`
-	ByCategory []CategoryFilterStats `json:"by_category"`
+	EventsSeen         uint64                `json:"events_seen"`
+	EventsPassed       uint64                `json:"events_passed"`
+	EventsDropped      uint64                `json:"events_dropped"`
+	DropProbability    float64               `json:"drop_probability"`
+	CategoryFilterSize int                   `json:"category_filter_size"`
+	PIDFilterSize      int                   `json:"pid_filter_size"`
+	PIDBlacklistSize   int                   `json:"pid_blacklist_size"`
+	CgroupFilterSize   int                   `json:"cgroup_filter_size"`
+	SyscallFilterSize  int                   `json:"syscall_filter_size"`
+	ByCategory         []CategoryFilterStats `json:"by_category"`
 }
 
 // CategoryFilterStats holds per-category filter statistics.
 type CategoryFilterStats struct {
-	Category    string `json:"category"`
-	CategoryID  uint8  `json:"category_id"`
+	Category   string `json:"category"`
+	CategoryID uint8  `json:"category_id"`
 	Seen       uint64 `json:"seen"`
 	Passed     uint64 `json:"passed"`
 	Dropped    uint64 `json:"dropped"`

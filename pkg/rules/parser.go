@@ -40,21 +40,21 @@ type MacroDef struct {
 
 // RuleDef defines a detection rule.
 type RuleDef struct {
-	ID         string        `json:"id,omitempty" yaml:"id,omitempty"`
-	Name       string        `json:"rule" yaml:"rule"`
-	Desc       string        `json:"desc" yaml:"desc"`
-	Condition  string        `json:"condition" yaml:"condition"`
-	Output     string        `json:"output" yaml:"output"`
-	Priority   string        `json:"priority" yaml:"priority"`
-	Tags       []string      `json:"tags,omitempty" yaml:"tags,omitempty"`
-	Action     string        `json:"action,omitempty" yaml:"action,omitempty"`
-	Correlate  *CorrelateDef `json:"correlate,omitempty" yaml:"correlate,omitempty"`
+	ID         string         `json:"id,omitempty" yaml:"id,omitempty"`
+	Name       string         `json:"rule" yaml:"rule"`
+	Desc       string         `json:"desc" yaml:"desc"`
+	Condition  string         `json:"condition" yaml:"condition"`
+	Output     string         `json:"output" yaml:"output"`
+	Priority   string         `json:"priority" yaml:"priority"`
+	Tags       []string       `json:"tags,omitempty" yaml:"tags,omitempty"`
+	Action     string         `json:"action,omitempty" yaml:"action,omitempty"`
+	Correlate  *CorrelateDef  `json:"correlate,omitempty" yaml:"correlate,omitempty"`
 	Exceptions []ExceptionDef `json:"exceptions,omitempty" yaml:"exceptions,omitempty"`
 }
 
 // CorrelateDef specifies multi-signal correlation parameters.
 type CorrelateDef struct {
-	Window  string   `json:"window" yaml:"window"`   // e.g., "5s"
+	Window  string   `json:"window" yaml:"window"` // e.g., "5s"
 	Signals []string `json:"signals" yaml:"signals"`
 	Logic   string   `json:"logic" yaml:"logic"` // "all" or "any"
 	GroupBy []string `json:"group_by" yaml:"group_by"`

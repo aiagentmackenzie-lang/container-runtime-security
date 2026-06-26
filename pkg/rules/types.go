@@ -21,20 +21,20 @@ const (
 	PriorityCritical  = "CRITICAL"
 	PriorityError     = "ERROR"
 	PriorityWarning   = "WARNING"
-	PriorityNotice   = "NOTICE"
-	PriorityInfo     = "INFO"
-	PriorityDebug    = "DEBUG"
+	PriorityNotice    = "NOTICE"
+	PriorityInfo      = "INFO"
+	PriorityDebug     = "DEBUG"
 )
 
 // PriorityOrder defines severity ordering (higher index = more severe).
 var PriorityOrder = map[string]int{
-	PriorityDebug:    0,
-	PriorityInfo:     1,
-	PriorityNotice:   2,
-	PriorityWarning:  3,
-	PriorityError:    4,
-	PriorityCritical: 5,
-	PriorityAlert:    6,
+	PriorityDebug:     0,
+	PriorityInfo:      1,
+	PriorityNotice:    2,
+	PriorityWarning:   3,
+	PriorityError:     4,
+	PriorityCritical:  5,
+	PriorityAlert:     6,
 	PriorityEmergency: 7,
 }
 

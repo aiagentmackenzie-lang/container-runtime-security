@@ -24,9 +24,9 @@ import (
 // ── Enforcement Action Types ──────────────────────────────────────────
 
 const (
-	EnforceSIGTERM  = "sigterm"  // Graceful termination
-	EnforceSIGKILL  = "sigkill"  // Immediate kill
-	EnforceLSMDeny  = "lsm_deny" // BPF LSM inline deny (kernel 5.7+)
+	EnforceSIGTERM  = "sigterm"   // Graceful termination
+	EnforceSIGKILL  = "sigkill"   // Immediate kill
+	EnforceLSMDeny  = "lsm_deny"  // BPF LSM inline deny (kernel 5.7+)
 	EnforceNetBlock = "net_block" // TC-based network block
 )
 
@@ -42,36 +42,36 @@ const (
 
 // EnforcementResult records the outcome of an enforcement action.
 type EnforcementResult struct {
-	Action    string    `json:"action"`      // sigterm, sigkill, lsm_deny, net_block
-	Signal    string    `json:"signal"`      // SIGTERM or SIGKILL (for kill actions)
+	Action    string    `json:"action"` // sigterm, sigkill, lsm_deny, net_block
+	Signal    string    `json:"signal"` // SIGTERM or SIGKILL (for kill actions)
 	TargetPID uint32    `json:"target_pid"`
 	Success   bool      `json:"success"`
-	Reason    string    `json:"reason"`      // killed, graceful_killed, killed_after_grace, etc.
+	Reason    string    `json:"reason"` // killed, graceful_killed, killed_after_grace, etc.
 	RuleID    string    `json:"rule_id"`
 	Container string    `json:"container,omitempty"`
 	Namespace string    `json:"namespace,omitempty"`
 	Timestamp time.Time `json:"timestamp"`
-	LatencyUS int64     `json:"latency_us"`  // microseconds
+	LatencyUS int64     `json:"latency_us"` // microseconds
 }
 
 // ── Response Actor Configuration ──────────────────────────────────────
 
 // ResponseActorConfig holds configuration for the response actor.
 type ResponseActorConfig struct {
-	Mode               EnforcementMode // graceful or immediate
-	GracePeriodSeconds int             // seconds to wait after SIGTERM before SIGKILL (0 = immediate)
-	MaxKillsPerPod     int             // rate limit: max kills per pod per window
-	WindowSeconds      int             // rate limit: window in seconds
-	ProtectedNamespaces []string       // namespaces exempt from enforcement
+	Mode                EnforcementMode // graceful or immediate
+	GracePeriodSeconds  int             // seconds to wait after SIGTERM before SIGKILL (0 = immediate)
+	MaxKillsPerPod      int             // rate limit: max kills per pod per window
+	WindowSeconds       int             // rate limit: window in seconds
+	ProtectedNamespaces []string        // namespaces exempt from enforcement
 }
 
 // DefaultResponseActorConfig returns sensible defaults.
 func DefaultResponseActorConfig() ResponseActorConfig {
 	return ResponseActorConfig{
-		Mode:               EnforceModeImmediate,
-		GracePeriodSeconds: 5,
-		MaxKillsPerPod:     10,
-		WindowSeconds:      60,
+		Mode:                EnforceModeImmediate,
+		GracePeriodSeconds:  5,
+		MaxKillsPerPod:      10,
+		WindowSeconds:       60,
 		ProtectedNamespaces: []string{"kube-system", "kube-public"},
 	}
 }
@@ -499,6 +499,6 @@ func (rl *RateLimiter) Close() {
 // ── Unused import guard ───────────────────────────────────────────────
 
 var (
-	_ = ebpf.CatProcess  // ensure package reference
+	_ = ebpf.CatProcess // ensure package reference
 	_ = rules.ActionEnforce
 )
