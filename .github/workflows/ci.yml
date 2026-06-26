@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Build ────────────────────────────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+  # ── Format gate ──────────────────────────────────────────────────────
+  fmt:
+    name: gofmt check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: gofmt -l (must be empty)
+        run: |
+          # shellcheck disable=SC2046
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "❌ gofmt would reformat the following files:"
+            gofmt -l .
+            echo "::group::Diff"
+            gofmt -d .
+            echo "::endgroup::"
+            exit 1
+          fi
+          echo "✅ gofmt clean"
+
+  # ── Test ─────────────────────────────────────────────────────────────
+  test:
+    name: Test (race + coverage)
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run tests
+        # Mirrors the Makefile `test` target (./pkg/...) and adds the mocked
+        # ./test/... suites (cryptojacking, escape_scenarios, integration) which
+        # use a synthetic event channel — no real eBPF kernel needed. The
+        # real-eBPF loader test (pkg/ebpf/loader_linux_test.go, //go:build linux)
+        # skips gracefully when compiled .o objects / BTF are absent.
+        run: go test -race -coverprofile=coverage.out -covermode=atomic -v ./pkg/... ./test/...
+
+      - name: Coverage summary
+        run: |
+          go tool cover -func=coverage.out | tail -1
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: coverage-report
+          path: coverage.out
